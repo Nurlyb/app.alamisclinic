@@ -68,14 +68,25 @@ async function putHandler(request: NextRequest, user: JWTPayload) {
       }
 
       // Обновление записи
+      const updateData: any = {
+        ...(data.datetime && { datetime: new Date(data.datetime) }),
+        ...(data.status && { status: data.status }),
+        ...(data.comment !== undefined && { comment: data.comment }),
+        ...(data.prepayment !== undefined && { prepayment: data.prepayment }),
+      };
+
+      // Добавляем информацию о том, кто выполнил действие
+      if (data.status === 'CANCELLED') {
+        updateData.cancelledBy = user.userId;
+        updateData.cancelledAt = new Date();
+      } else if (data.status === 'TRANSFERRED') {
+        updateData.transferredBy = user.userId;
+        updateData.transferredAt = new Date();
+      }
+
       const updatedAppointment = await prisma.appointment.update({
         where: { id },
-        data: {
-          ...(data.datetime && { datetime: new Date(data.datetime) }),
-          ...(data.status && { status: data.status }),
-          ...(data.comment !== undefined && { comment: data.comment }),
-          ...(data.prepayment !== undefined && { prepayment: data.prepayment }),
-        },
+        data: updateData,
         include: {
           patient: {
             select: {
@@ -140,7 +151,11 @@ async function deleteHandler(request: NextRequest, user: JWTPayload) {
       // Мягкое удаление - изменение статуса на CANCELLED
       const cancelledAppointment = await prisma.appointment.update({
         where: { id },
-        data: { status: 'CANCELLED' },
+        data: { 
+          status: 'CANCELLED',
+          cancelledBy: user.userId,
+          cancelledAt: new Date(),
+        },
       });
 
       // Логирование

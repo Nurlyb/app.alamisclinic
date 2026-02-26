@@ -235,6 +235,11 @@ model Appointment {
   type          VisitType         // Первичный / Повторный
   comment       String?
   managerId     String            // Кто создал запись (оператор)
+  cancelledBy   String?           // Кто отменил запись
+  cancelledAt   DateTime?         // Когда отменили
+  transferredBy String?           // Кто перенес запись
+  transferredAt DateTime?         // Когда перенесли
+  arrivedBy     String?           // Кто отметил прибытие
   prepayment    Decimal           @default(0) @db.Decimal(10, 2)
   finalPayment  Decimal           @default(0) @db.Decimal(10, 2)
   paymentMethod PaymentMethod?

@@ -590,6 +590,77 @@ export default function SchedulePage() {
                   </div>
                 )}
 
+                {/* Audit Info - только для владельца */}
+                {user?.role === 'OWNER' && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <label className="text-sm font-medium text-blue-900 mb-2 block">
+                      📋 История действий
+                    </label>
+                    <div className="space-y-2 text-xs text-blue-800">
+                      <div className="flex justify-between">
+                        <span>Создано:</span>
+                        <span className="font-medium">
+                          {format(new Date(selectedAppointment.createdAt), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                        </span>
+                      </div>
+                      {selectedAppointment.manager && (
+                        <div className="flex justify-between">
+                          <span>Создал:</span>
+                          <span className="font-medium">{selectedAppointment.manager.name}</span>
+                        </div>
+                      )}
+                      {selectedAppointment.arrivedAt && (
+                        <>
+                          <div className="flex justify-between">
+                            <span>Прибыл:</span>
+                            <span className="font-medium">
+                              {format(new Date(selectedAppointment.arrivedAt), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                            </span>
+                          </div>
+                          {selectedAppointment.arrivedBy && (
+                            <div className="flex justify-between">
+                              <span>Отметил прибытие:</span>
+                              <span className="font-medium">{selectedAppointment.arrivedBy}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {selectedAppointment.cancelledAt && (
+                        <>
+                          <div className="flex justify-between">
+                            <span>Отменено:</span>
+                            <span className="font-medium">
+                              {format(new Date(selectedAppointment.cancelledAt), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                            </span>
+                          </div>
+                          {selectedAppointment.cancelledBy && (
+                            <div className="flex justify-between">
+                              <span>Отменил:</span>
+                              <span className="font-medium">{selectedAppointment.cancelledBy}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {selectedAppointment.transferredAt && (
+                        <>
+                          <div className="flex justify-between">
+                            <span>Перенесено:</span>
+                            <span className="font-medium">
+                              {format(new Date(selectedAppointment.transferredAt), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                            </span>
+                          </div>
+                          {selectedAppointment.transferredBy && (
+                            <div className="flex justify-between">
+                              <span>Перенес:</span>
+                              <span className="font-medium">{selectedAppointment.transferredBy}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="space-y-2 pt-4 border-t">
                   {/* Кнопки для регистратуры - 3 кнопки */}

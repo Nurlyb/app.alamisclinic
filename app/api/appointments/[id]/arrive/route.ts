@@ -44,6 +44,7 @@ async function handler(request: NextRequest, user: JWTPayload) {
       data: {
         status: 'ARRIVED',
         arrivedAt: new Date(),
+        arrivedBy: user.userId, // Кто отметил прибытие
       },
       include: {
         patient: true,

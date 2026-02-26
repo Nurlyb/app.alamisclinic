@@ -114,6 +114,11 @@ export interface Appointment {
   prepayment: number;
   comment?: string;
   arrivedAt?: string;
+  arrivedBy?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  transferredAt?: string;
+  transferredBy?: string;
   createdAt: string;
 }
 

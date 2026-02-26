@@ -129,6 +129,7 @@ async function putHandler(request: NextRequest, user: JWTPayload) {
 }
 
 export const PUT = withAuth(putHandler, 'appointments:update');
+export const PATCH = withAuth(putHandler, 'appointments:update'); // Добавляем поддержку PATCH
 
 // DELETE - Удаление (отмена) записи
 async function deleteHandler(request: NextRequest, user: JWTPayload) {

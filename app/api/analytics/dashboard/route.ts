@@ -1,0 +1,189 @@
+/**
+ * GET /api/analytics/dashboard - Дашборд аналитики для владельца
+ */
+
+import { NextRequest } from 'next/server';
+import { withAuth } from '@/lib/auth/middleware';
+import { prisma } from '@/lib/db/prisma';
+import {
+  successResponse,
+  internalErrorResponse,
+} from '@/lib/utils/response';
+
+export const GET = withAuth(
+  async (request, user) => {
+    try {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+      // Пациенты сегодня
+      const patientsToday = await prisma.appointment.count({
+        where: {
+          datetime: {
+            gte: startOfToday,
+            lte: endOfToday,
+          },
+          status: {
+            in: ['CONFIRMED', 'ARRIVED', 'DONE'],
+          },
+        },
+      });
+
+      // Выручка сегодня
+      const paymentsToday = await prisma.payment.findMany({
+        where: {
+          createdAt: {
+            gte: startOfToday,
+            lte: endOfToday,
+          },
+        },
+        select: {
+          amount: true,
+        },
+      });
+
+      const revenueToday = paymentsToday.reduce((sum, p) => sum + Number(p.amount), 0);
+
+      // Выручка за месяц
+      const paymentsMonth = await prisma.payment.findMany({
+        where: {
+          createdAt: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+        select: {
+          amount: true,
+        },
+      });
+
+      const revenueMonth = paymentsMonth.reduce((sum, p) => sum + Number(p.amount), 0);
+
+      // Конверсия (записались → пришли)
+      const appointmentsMonth = await prisma.appointment.count({
+        where: {
+          datetime: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+      });
+
+      const arrivedMonth = await prisma.appointment.count({
+        where: {
+          datetime: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+          status: {
+            in: ['ARRIVED', 'DONE'],
+          },
+        },
+      });
+
+      const conversionRate = appointmentsMonth > 0 ? (arrivedMonth / appointmentsMonth) * 100 : 0;
+
+      // Долги
+      const totalDebt = await prisma.patient.aggregate({
+        _sum: {
+          debt: true,
+        },
+      });
+
+      // Возвраты за месяц
+      const refundsMonth = await prisma.refund.findMany({
+        where: {
+          createdAt: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+          status: 'COMPLETED',
+        },
+        select: {
+          amount: true,
+        },
+      });
+
+      const totalRefunds = refundsMonth.reduce((sum, r) => sum + Number(r.amount), 0);
+
+      // Источники пациентов
+      const patientsBySource = await prisma.patient.groupBy({
+        by: ['source'],
+        _count: {
+          id: true,
+        },
+      });
+
+      // Топ услуг
+      const topServices = await prisma.appointment.groupBy({
+        by: ['serviceId'],
+        where: {
+          datetime: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+          status: 'DONE',
+        },
+        _count: {
+          id: true,
+        },
+        orderBy: {
+          _count: {
+            id: 'desc',
+          },
+        },
+        take: 10,
+      });
+
+      const serviceIds = topServices.map((s) => s.serviceId);
+      const services = await prisma.service.findMany({
+        where: {
+          id: {
+            in: serviceIds,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+        },
+      });
+
+      const topServicesWithNames = topServices.map((ts) => {
+        const service = services.find((s) => s.id === ts.serviceId);
+        return {
+          serviceId: ts.serviceId,
+          serviceName: service?.name || 'Неизвестно',
+          count: ts._count.id,
+        };
+      });
+
+      return successResponse({
+        today: {
+          patients: patientsToday,
+          revenue: revenueToday,
+        },
+        month: {
+          revenue: revenueMonth,
+          appointments: appointmentsMonth,
+          arrived: arrivedMonth,
+          conversionRate: Math.round(conversionRate * 100) / 100,
+          refunds: totalRefunds,
+        },
+        debt: Number(totalDebt._sum.debt || 0),
+        patientsBySource: patientsBySource.map((p) => ({
+          source: p.source,
+          count: p._count.id,
+        })),
+        topServices: topServicesWithNames,
+      });
+    } catch (error) {
+      return internalErrorResponse(error);
+    }
+  },
+  'analytics:view:all'
+);

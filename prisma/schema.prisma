@@ -1,0 +1,504 @@
+// Prisma Schema для Clinic Management System
+// PostgreSQL 15 + Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  OPERATOR
+  RECEPTIONIST
+  ASSISTANT
+  DOCTOR
+  OWNER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum Source {
+  INSTAGRAM
+  GIS
+  REFERRAL
+  SITE
+  OTHER
+}
+
+enum AppointmentStatus {
+  PENDING      // Ожидание подтверждения
+  CONFIRMED    // Подтверждено
+  ARRIVED      // Прибыл
+  DONE         // Выполнено
+  CANCELLED    // Отменено
+  NO_SHOW      // Не пришёл
+  TRANSFERRED  // Перенесено
+}
+
+enum VisitType {
+  PRIMARY
+  REPEAT
+}
+
+enum PaymentMethod {
+  CASH
+  KASPI
+  CARD
+}
+
+enum DirectionStatus {
+  CREATED
+  SCHEDULED
+  ARRIVED
+  DONE
+  CANCELLED
+}
+
+enum Urgency {
+  NORMAL
+  URGENT
+}
+
+enum RefundType {
+  FULL
+  PARTIAL
+  ADJUSTMENT
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum SalaryType {
+  PERCENT
+  FIXED
+  MIXED
+}
+
+enum AccrualStatus {
+  PENDING
+  PAID
+  ADJUSTED
+}
+
+enum PeriodStatus {
+  OPEN
+  CLOSED
+}
+
+enum FileType {
+  ANALYSIS
+  XRAY
+  PRESCRIPTION
+  RECEIPT
+  OTHER
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+/// Пользователи системы (операторы, ресепшн, ассистенты, доктора, владелец)
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  role         Role
+  departmentId String?
+  colorBadge   String   // Цвет бейджа для отображения в расписании
+  phone        String?
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  // Relations
+  salaryScheme        SalaryScheme?
+  appointments        Appointment[]    @relation("DoctorAppointments")
+  managedAppts        Appointment[]    @relation("ManagerAppointments")
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  templates           RecordTemplate[]
+  salaryAccruals      SalaryAccrual[]
+  salaryPayments      SalaryPayment[]
+  directionsFrom      Direction[]      @relation("DirectionFromDoctor")
+  directionsTo        Direction[]      @relation("DirectionToDoctor")
+
+  @@index([role])
+  @@index([departmentId])
+  @@map("users")
+}
+
+/// Пациенты клиники
+model Patient {
+  id              String   @id @default(uuid())
+  fullName        String
+  iin             String?  @unique // ИИН (12 цифр) - опционально
+  dob             DateTime? // Дата рождения - опционально
+  gender          Gender?   // Пол - опционально
+  phone           String
+  address         String?
+  source          Source   // Источник пациента
+  blacklist       Boolean  @default(false)
+  blacklistReason String?
+  noShowCount     Int      @default(0) // Количество неявок
+  debt            Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
+
+  // Relations
+  appointments   Appointment[]
+  files          PatientFile[]
+  medicalRecords MedicalRecord[]
+  directions     Direction[]
+
+  @@index([iin])
+  @@index([phone])
+  @@index([blacklist])
+  @@map("patients")
+}
+
+/// Отделения клиники
+model Department {
+  id         String    @id @default(uuid())
+  name       String    // Проктология, Урология, Ортопедия и т.д.
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  categories   ServiceCategory[]
+  services     Service[]
+  appointments Appointment[]
+
+  @@map("departments")
+}
+
+/// Подкатегории услуг (Консультации, Диагностика, Лечение, Операции, Доп. услуги)
+model ServiceCategory {
+  id           String   @id @default(uuid())
+  name         String
+  departmentId String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  services   Service[]
+
+  @@index([departmentId])
+  @@map("service_categories")
+}
+
+/// Услуги клиники
+model Service {
+  id           String   @id @default(uuid())
+  code         String   // Код услуги (N002, 1.2 и т.д.)
+  name         String   // Наименование услуги
+  price        Decimal  @db.Decimal(10, 2)
+  categoryId   String
+  departmentId String
+  durationMin  Int      // Длительность в минутах для расписания
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  // Relations
+  category     ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  department   Department      @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  directions   Direction[]
+
+  @@index([code])
+  @@index([categoryId])
+  @@index([departmentId])
+  @@index([isActive])
+  @@map("services")
+}
+
+/// Записи на приём (расписание)
+model Appointment {
+  id            String            @id @default(uuid())
+  patientId     String
+  doctorId      String
+  serviceId     String
+  departmentId  String
+  datetime      DateTime          // Дата и время приёма
+  status        AppointmentStatus @default(PENDING)
+  type          VisitType         // Первичный / Повторный
+  comment       String?
+  managerId     String            // Кто создал запись (оператор)
+  prepayment    Decimal           @default(0) @db.Decimal(10, 2)
+  finalPayment  Decimal           @default(0) @db.Decimal(10, 2)
+  paymentMethod PaymentMethod?
+  arrivedAt     DateTime?         // Время прибытия пациента
+  referralId    String?           // ID направления, если запись создана по направлению
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relations
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor        User           @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  manager       User           @relation("ManagerAppointments", fields: [managerId], references: [id])
+  service       Service        @relation(fields: [serviceId], references: [id])
+  department    Department     @relation(fields: [departmentId], references: [id])
+  direction     Direction?
+  payment       Payment?
+  medicalRecord MedicalRecord?
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([datetime])
+  @@index([status])
+  @@index([departmentId])
+  @@map("appointments")
+}
+
+/// Направления между специалистами внутри клиники
+model Direction {
+  id            String          @id @default(uuid())
+  number        Int             @unique @default(autoincrement()) // Автоинкремент №00001, №00002
+  appointmentId String          @unique
+  fromDoctorId  String?         // От какого доктора (может быть null если первичный)
+  toDoctorId    String          // К какому доктору
+  patientId     String
+  serviceId     String
+  comment       String?
+  urgency       Urgency         @default(NORMAL)
+  status        DirectionStatus @default(CREATED)
+  pdfUrl        String?         // Ссылка на PDF направления
+  printedAt     DateTime?
+  createdAt     DateTime        @default(now())
+
+  // Relations
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  fromDoctor  User?       @relation("DirectionFromDoctor", fields: [fromDoctorId], references: [id])
+  toDoctor    User        @relation("DirectionToDoctor", fields: [toDoctorId], references: [id])
+  patient     Patient     @relation(fields: [patientId], references: [id])
+  service     Service     @relation(fields: [serviceId], references: [id])
+
+  @@index([status])
+  @@index([toDoctorId])
+  @@index([patientId])
+  @@map("directions")
+}
+
+/// Оплаты
+model Payment {
+  id            String        @id @default(uuid())
+  appointmentId String        @unique
+  amount        Decimal       @db.Decimal(10, 2)
+  cash          Decimal       @default(0) @db.Decimal(10, 2)
+  cashless      Decimal       @default(0) @db.Decimal(10, 2)
+  change        Decimal       @default(0) @db.Decimal(10, 2)
+  method        PaymentMethod
+  receivedBy    String        // Кто принял оплату (ресепшн)
+  receiptPdfUrl String?       // Ссылка на PDF чека
+  createdAt     DateTime      @default(now())
+
+  // Relations
+  appointment Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  refunds     Refund[]
+  accrual     SalaryAccrual?
+
+  @@index([createdAt])
+  @@map("payments")
+}
+
+/// Возвраты и корректировки
+model Refund {
+  id             String        @id @default(uuid())
+  paymentId      String
+  appointmentId  String
+  amount         Decimal       @db.Decimal(10, 2)
+  type           RefundType
+  reasonCategory String        // Категория причины
+  reasonText     String?       // Дополнительный текст
+  requestedBy    String        // Кто запросил
+  approvedBy     String?       // Кто одобрил (владелец)
+  status         RefundStatus  @default(PENDING)
+  refundMethod   PaymentMethod // Способ возврата
+  createdAt      DateTime      @default(now())
+  completedAt    DateTime?
+
+  // Relations
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("refunds")
+}
+
+/// Медицинские карточки (записи осмотров)
+model MedicalRecord {
+  id            String    @id @default(uuid())
+  patientId     String
+  appointmentId String    @unique
+  doctorId      String
+  diagnosis     String?
+  icd10         String?   // Код МКБ-10
+  prescription  String?   // Рецепт
+  notes         String?   // Рекомендации
+  vitals        Json?     // Vitals: вес, рост, давление, температура, жалобы
+  nextVisitDate DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  patient     Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@map("medical_records")
+}
+
+/// Шаблоны осмотров для докторов
+model RecordTemplate {
+  id           String  @id @default(uuid())
+  doctorId     String
+  name         String  // Название шаблона
+  diagnosis    String?
+  icd10        String?
+  prescription String?
+  notes        String?
+  vitals       Json?
+
+  // Relations
+  doctor User @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@map("record_templates")
+}
+
+/// Файлы пациентов (анализы, снимки, рецепты)
+model PatientFile {
+  id            String   @id @default(uuid())
+  patientId     String
+  appointmentId String?  // Может быть привязан к конкретному приёму
+  type          FileType
+  url           String   // Ссылка на файл в S3/Supabase
+  name          String   // Оригинальное имя файла
+  uploadedBy    String   // Кто загрузил
+  createdAt     DateTime @default(now())
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([appointmentId])
+  @@map("patient_files")
+}
+
+/// Схемы зарплат докторов
+model SalaryScheme {
+  id               String     @id @default(uuid())
+  doctorId         String     @unique
+  type             SalaryType
+  baseSalary       Decimal    @default(0) @db.Decimal(10, 2) // Для фикс и смешанной
+  primaryPercent   Decimal    @default(0) @db.Decimal(5, 2)  // % за первичных
+  repeatPercent    Decimal    @default(0) @db.Decimal(5, 2)  // % за повторных
+  operationPercent Decimal    @default(0) @db.Decimal(5, 2)  // % за операции
+  effectiveFrom    DateTime   // Дата начала действия схемы
+  createdAt        DateTime   @default(now())
+
+  // Relations
+  doctor User @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@map("salary_schemes")
+}
+
+/// Начисления зарплаты (по каждому приёму)
+model SalaryAccrual {
+  id             String        @id @default(uuid())
+  doctorId       String
+  paymentId      String        @unique
+  grossAmount    Decimal       @db.Decimal(10, 2) // Сумма приёма
+  percentApplied Decimal       @db.Decimal(5, 2)  // Применённый процент
+  netAmount      Decimal       @db.Decimal(10, 2) // Начислено доктору
+  periodMonth    Int           // Месяц периода
+  periodYear     Int           // Год периода
+  status         AccrualStatus @default(PENDING)
+  createdAt      DateTime      @default(now())
+
+  // Relations
+  doctor  User    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@index([periodMonth, periodYear])
+  @@map("salary_accruals")
+}
+
+/// Выплаты зарплаты (закрытие периода)
+model SalaryPayment {
+  id            String        @id @default(uuid())
+  doctorId      String
+  periodMonth   Int
+  periodYear    Int
+  totalAccrued  Decimal       @db.Decimal(10, 2) // Всего начислено
+  totalRefunds  Decimal       @default(0) @db.Decimal(10, 2) // Вычеты за возвраты
+  totalPaid     Decimal       @db.Decimal(10, 2) // К выплате
+  paymentDate   DateTime?     // Дата выплаты
+  paymentMethod PaymentMethod?
+  paidBy        String?       // Кто выплатил (владелец)
+  notes         String?
+  status        PeriodStatus  @default(OPEN)
+  pdfUrl        String?       // Расчётный лист PDF
+  createdAt     DateTime      @default(now())
+
+  // Relations
+  doctor User @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, periodMonth, periodYear])
+  @@index([status])
+  @@map("salary_payments")
+}
+
+/// Уведомления (внутренние push)
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // appointment:arrived, direction:created, refund:approval и т.д.
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  link      String?  // Ссылка на связанную сущность
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+/// Журнал аудита (все действия пользователей)
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT и т.д.
+  tableName String   // Название таблицы
+  recordId  String   // ID записи
+  oldValue  Json?    // Старое значение
+  newValue  Json?    // Новое значение
+  ip        String?  // IP адрес
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tableName, recordId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

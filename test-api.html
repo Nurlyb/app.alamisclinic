@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        button { margin: 10px 0; padding: 10px; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🏥 Тест API Клиники</h1>
+    
+    <div id="tokenStatus" style="padding: 10px; background: #f0f0f0; border-radius: 5px; margin-bottom: 10px;">
+        <strong>Статус токена:</strong> <span id="tokenInfo">❌ Не авторизован</span>
+    </div>
+    
+    <button onclick="testLogin()">1. Тест Логина</button>
+    <button onclick="testMe()">2. Тест /api/auth/me</button>
+    <button onclick="testDepartments()">3. Тест /api/departments</button>
+    <button onclick="testPatients()">4. Тест /api/patients</button>
+    <button onclick="clearOutput()" style="background: #666; margin-left: 20px;">🗑 Очистить</button>
+    
+    <div id="output"></div>
+
+    <script>
+        let accessToken = null;
+
+        function log(message, isError = false) {
+            const output = document.getElementById('output');
+            const className = isError ? 'error' : 'success';
+            output.innerHTML += `<pre class="${className}">${message}</pre>`;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+            log('🔄 Вывод очищен. Готов к новым тестам!');
+        }
+
+        function updateTokenStatus() {
+            const tokenInfo = document.getElementById('tokenInfo');
+            if (accessToken) {
+                tokenInfo.innerHTML = '✅ Токен получен';
+                tokenInfo.style.color = 'green';
+            } else {
+                tokenInfo.innerHTML = '❌ Не авторизован';
+                tokenInfo.style.color = 'red';
+            }
+        }
+
+        async function testLogin() {
+            try {
+                log('🔄 Отправка запроса на логин...');
+                
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: '+77001234571',
+                        password: 'clinic123'
+                    })
+                });
+
+                log(`📡 Статус ответа: ${response.status}`);
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    accessToken = data.tokens.accessToken;
+                    updateTokenStatus();
+                    log('✅ Логин успешен!');
+                    log(`👤 Пользователь: ${data.user.name} (${data.user.role})`);
+                    log(`🔑 Длина токена: ${accessToken.length} символов`);
+                } else {
+                    log(`❌ Ошибка логина: ${data.error}`, true);
+                }
+            } catch (error) {
+                log(`❌ Ошибка сети: ${error.message}`, true);
+                log(`💡 Убедитесь, что сервер запущен на http://localhost:3000`, true);
+            }
+        }
+
+        async function testMe() {
+            if (!accessToken) {
+                log('❌ Сначала выполните логин!', true);
+                return;
+            }
+
+            try {
+                log('🔄 Проверка /api/auth/me...');
+                
+                const response = await fetch('http://localhost:3000/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+
+                log(`📡 Статус ответа: ${response.status}`);
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('✅ /api/auth/me работает!');
+                    log(`👤 ${data.user.name}`);
+                    log(`📋 Роль: ${data.user.role}`);
+                    log(`🔐 Разрешений: ${data.permissions.length}`);
+                } else {
+                    log(`❌ Ошибка: ${data.error}`, true);
+                }
+            } catch (error) {
+                log(`❌ Ошибка сети: ${error.message}`, true);
+            }
+        }
+
+        async function testDepartments() {
+            if (!accessToken) {
+                log('❌ Сначала выполните логин!', true);
+                return;
+            }
+
+            try {
+                log('🔄 Получение списка отделений...');
+                
+                const response = await fetch('http://localhost:3000/api/departments', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+
+                log(`📡 Статус ответа: ${response.status}`);
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('✅ /api/departments работает!');
+                    log(`🏥 Найдено отделений: ${data.data.length}`);
+                    data.data.slice(0, 3).forEach(dept => {
+                        log(`  • ${dept.name}`);
+                    });
+                } else {
+                    log(`❌ Ошибка: ${data.error}`, true);
+                }
+            } catch (error) {
+                log(`❌ Ошибка сети: ${error.message}`, true);
+            }
+        }
+
+        async function testPatients() {
+            if (!accessToken) {
+                log('❌ Сначала выполните логин!', true);
+                return;
+            }
+
+            try {
+                log('🔄 Получение списка пациентов...');
+                
+                const response = await fetch('http://localhost:3000/api/patients?page=1&limit=5', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+
+                log(`📡 Статус ответа: ${response.status}`);
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('✅ /api/patients работает!');
+                    log(`👥 Показано пациентов: ${data.data.length}`);
+                    log(`📊 Всего в базе: ${data.pagination.total}`);
+                    data.data.slice(0, 3).forEach(patient => {
+                        log(`  • ${patient.fullName} (${patient.phone})`);
+                    });
+                } else {
+                    log(`❌ Ошибка: ${data.error}`, true);
+                }
+            } catch (error) {
+                log(`❌ Ошибка сети: ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>

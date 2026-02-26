@@ -1,0 +1,246 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAuthStore } from '@/lib/store/auth';
+import { authApi } from '@/api/auth.api';
+import toast from 'react-hot-toast';
+
+const loginSchema = z.object({
+  phone: z.string().min(10, 'Введите корректный номер телефона'),
+  password: z.string().min(1, 'Введите пароль'),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+
+export default function LoginPage() {
+  const router = useRouter();
+  const login = useAuthStore((state) => state.login);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const [selectedRole, setSelectedRole] = useState<string>('owner');
+
+  const testAccounts = {
+    owner: { phone: '+77001234567', password: 'clinic123', name: 'Владелец' },
+    operator: { phone: '+77001234568', password: 'clinic123', name: 'Оператор' },
+    receptionist: { phone: '+77001234569', password: 'clinic123', name: 'Регистратор' },
+    assistant: { phone: '+77001234570', password: 'clinic123', name: 'Ассистент' },
+    doctor1: { phone: '+77001234571', password: 'clinic123', name: 'Доктор 1' },
+    doctor2: { phone: '+77001234572', password: 'clinic123', name: 'Доктор 2' },
+    doctor3: { phone: '+77001234573', password: 'clinic123', name: 'Доктор 3' },
+  };
+
+  const fillTestData = (role: string) => {
+    const account = testAccounts[role as keyof typeof testAccounts];
+    if (account) {
+      setValue('phone', account.phone);
+      setValue('password', account.password);
+      setSelectedRole(role);
+    }
+  };
+
+  const onSubmit = async (data: LoginFormData) => {
+    setIsLoading(true);
+
+    try {
+      const response = await authApi.login(data);
+      
+      if (response.success) {
+        login(response.user, response.tokens.accessToken, response.tokens.refreshToken);
+        toast.success(`Добро пожаловать, ${response.user.name}!`);
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Ошибка входа');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50">
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
+              <svg
+                className="w-8 h-8 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Clinic Management
+            </h1>
+            <p className="text-gray-600">Вход в систему</p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Phone */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Телефон
+              </label>
+              <Input
+                {...register('phone')}
+                type="tel"
+                placeholder="+77001234567"
+                disabled={isLoading}
+                className={errors.phone ? 'border-red-500' : ''}
+              />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Пароль
+              </label>
+              <Input
+                {...register('password')}
+                type="password"
+                placeholder="••••••••"
+                disabled={isLoading}
+                className={errors.password ? 'border-red-500' : ''}
+              />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              )}
+            </div>
+
+            {/* Submit */}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Вход...
+                </>
+              ) : (
+                'Войти'
+              )}
+            </Button>
+
+            {/* Test data buttons */}
+            <div className="space-y-2">
+              <p className="text-xs text-gray-600 font-medium text-center">
+                Быстрый вход:
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fillTestData('owner')}
+                  disabled={isLoading}
+                  className="text-xs"
+                >
+                  👑 Владелец
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fillTestData('operator')}
+                  disabled={isLoading}
+                  className="text-xs"
+                >
+                  💼 Оператор
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fillTestData('receptionist')}
+                  disabled={isLoading}
+                  className="text-xs"
+                >
+                  📋 Регистратор
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fillTestData('assistant')}
+                  disabled={isLoading}
+                  className="text-xs"
+                >
+                  🤝 Ассистент
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fillTestData('doctor1')}
+                  disabled={isLoading}
+                  className="text-xs"
+                >
+                  👨‍⚕️ Доктор 1
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fillTestData('doctor2')}
+                  disabled={isLoading}
+                  className="text-xs"
+                >
+                  👩‍⚕️ Доктор 2
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          {/* Test credentials info */}
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-xs text-blue-800 mb-2 font-medium">
+              ℹ️ Все пароли: <span className="font-mono">clinic123</span>
+            </p>
+            <div className="space-y-1 text-xs text-blue-700">
+              <p>👑 Владелец: +77001234567</p>
+              <p>💼 Оператор: +77001234568</p>
+              <p>📋 Регистратор: +77001234569</p>
+              <p>🤝 Ассистент: +77001234570</p>
+              <p>👨‍⚕️ Доктора: +77001234571-573</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-sm text-gray-500 mt-6">
+          © 2026 Clinic Management System
+        </p>
+      </div>
+    </div>
+  );
+}

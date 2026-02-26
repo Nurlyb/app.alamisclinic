@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: clinic_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clinic_user
+      POSTGRES_PASSWORD: clinic_password
+      POSTGRES_DB: clinic_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - clinic_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: clinic_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - clinic_network
+
+  # Application (Next.js + Express)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clinic_app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://clinic_user:clinic_password@postgres:5432/clinic_db?schema=public
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+      - '3001:3001'
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - clinic_network
+    volumes:
+      - ./uploads:/app/uploads
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  clinic_network:
+    driver: bridge

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,23 +79,18 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                />
-              </svg>
+            <div className="flex justify-center mb-6">
+              <Image
+                src="/alamis_logo.png"
+                alt="Alamis Clinic"
+                width={180}
+                height={60}
+                className="object-contain"
+                priority
+              />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Clinic Management
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Система управления клиникой
             </h1>
             <p className="text-gray-600">Вход в систему</p>
           </div>
@@ -238,7 +234,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-6">
-          © 2026 Clinic Management System
+          © 2026 Alamis Clinic
         </p>
       </div>
     </div>

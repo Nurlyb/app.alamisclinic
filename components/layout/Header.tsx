@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Search, Bell, LogOut, User, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +61,18 @@ export function Header() {
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+      {/* Logo */}
+      <div className="flex items-center mr-6">
+        <Image
+          src="/alamis_logo.png"
+          alt="Alamis Clinic"
+          width={120}
+          height={40}
+          className="object-contain"
+          priority
+        />
+      </div>
+
       {/* Search */}
       <form onSubmit={handleSearch} className="flex-1 max-w-md">
         <div className="relative">

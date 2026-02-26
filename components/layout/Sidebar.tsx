@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
   Calendar, 
@@ -127,11 +128,15 @@ export function Sidebar() {
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen">
       {/* Logo */}
       <div className="p-6 border-b border-gray-200">
-        <Link href="/dashboard" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Briefcase className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold text-gray-900">Клиника</span>
+        <Link href="/dashboard" className="flex items-center justify-center">
+          <Image
+            src="/alamis_logo.png"
+            alt="Alamis Clinic"
+            width={140}
+            height={50}
+            className="object-contain"
+            priority
+          />
         </Link>
       </div>
 

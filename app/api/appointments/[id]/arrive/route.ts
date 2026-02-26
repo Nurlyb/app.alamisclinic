@@ -17,6 +17,9 @@ import { extractIdFromUrl } from '@/lib/utils/url';
 async function handler(request: NextRequest, user: JWTPayload) {
   try {
     const id = extractIdFromUrl(request.url);
+    
+    console.log('Arrive endpoint - ID:', id);
+    console.log('Arrive endpoint - URL:', request.url);
 
     const appointment = await prisma.appointment.findUnique({
       where: { id },
@@ -26,6 +29,8 @@ async function handler(request: NextRequest, user: JWTPayload) {
         service: true,
       },
     });
+
+    console.log('Arrive endpoint - Found appointment:', appointment ? 'Yes' : 'No');
 
     if (!appointment) {
       return notFoundResponse('Запись');

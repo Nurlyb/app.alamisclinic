@@ -1,4 +1,5 @@
 /**
+ * GET /api/appointments/[id] - Получение записи по ID
  * PUT /api/appointments/[id] - Обновление записи
  * DELETE /api/appointments/[id] - Удаление записи
  */
@@ -17,6 +18,51 @@ import {
 } from '@/lib/utils/response';
 import { logUpdate, logDelete } from '@/lib/audit/logger';
 import { extractIdFromUrl } from '@/lib/utils/url';
+
+// GET - Получение записи по ID
+async function getHandler(request: NextRequest, user: JWTPayload) {
+  try {
+    const id = extractIdFromUrl(request.url);
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: {
+        patient: true,
+        doctor: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        manager: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        service: true,
+        department: true,
+      },
+    });
+
+    if (!appointment) {
+      return notFoundResponse('Запись');
+    }
+
+    // Проверка прав доступа
+    if (user.role === 'DOCTOR' && appointment.doctorId !== user.userId) {
+      return errorResponse('Нет доступа к этой записи', 'FORBIDDEN', 403);
+    }
+
+    return successResponse(appointment);
+  } catch (error) {
+    return internalErrorResponse(error);
+  }
+}
+
+export const GET = withAuth(getHandler, 'appointments:view:all');
 
 // PUT - Обновление записи
 async function putHandler(request: NextRequest, user: JWTPayload) {
@@ -124,6 +170,7 @@ async function putHandler(request: NextRequest, user: JWTPayload) {
 
       return successResponse(updatedAppointment);
     } catch (error) {
+      console.error('PUT /api/appointments/[id] error:', error);
       return internalErrorResponse(error);
     }
 }
@@ -177,6 +224,7 @@ async function deleteHandler(request: NextRequest, user: JWTPayload) {
         appointment: cancelledAppointment,
       });
     } catch (error) {
+      console.error('DELETE /api/appointments/[id] error:', error);
       return internalErrorResponse(error);
     }
 }

@@ -81,6 +81,7 @@ const rolePermissions: Record<Role, Permission[]> = {
   RECEPTIONIST: [
     'appointments:view:all',
     'appointments:arrive',
+    'appointments:update',
     'patients:view',
     'payments:create',
     'payments:view:all',

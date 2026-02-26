@@ -31,9 +31,9 @@ async function handler(request: NextRequest, user: JWTPayload) {
       return notFoundResponse('Запись');
     }
 
-    if (appointment.status !== 'CONFIRMED') {
+    if (appointment.status !== 'CONFIRMED' && appointment.status !== 'PENDING') {
       return errorResponse(
-        'Можно отметить прибытие только для подтверждённых записей',
+        'Можно отметить прибытие только для подтверждённых или ожидающих записей',
         'INVALID_STATUS',
         400
       );
@@ -63,4 +63,4 @@ async function handler(request: NextRequest, user: JWTPayload) {
   }
 }
 
-export const PATCH = withAuth(handler, 'appointments:update');
+export const PATCH = withAuth(handler, 'appointments:arrive');

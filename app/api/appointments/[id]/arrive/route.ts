@@ -65,3 +65,4 @@ async function handler(request: NextRequest, user: JWTPayload) {
 }
 
 export const PATCH = withAuth(handler, 'appointments:arrive');
+export const POST = withAuth(handler, 'appointments:arrive'); // Добавляем поддержку POST

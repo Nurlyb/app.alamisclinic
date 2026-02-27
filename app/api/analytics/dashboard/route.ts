@@ -20,15 +20,18 @@ export const GET = withAuth(
       
       // Получаем дату в формате YYYY-MM-DD для Казахстана
       const year = localNow.getUTCFullYear();
-      const month = localNow.getUTCMonth();
-      const date = localNow.getUTCDate();
+      const month = String(localNow.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(localNow.getUTCDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
       
-      // Создаем границы дня в UTC (без смещения)
-      const startOfToday = new Date(Date.UTC(year, month, date, 0, 0, 0, 0));
-      const endOfToday = new Date(Date.UTC(year, month, date, 23, 59, 59, 999));
+      // Создаем границы дня
+      const startOfToday = new Date(`${todayStr}T00:00:00.000Z`);
+      const endOfToday = new Date(`${todayStr}T23:59:59.999Z`);
 
-      const startOfMonth = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
-      const endOfMonth = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
+      const monthStr = String(localNow.getUTCMonth() + 1).padStart(2, '0');
+      const startOfMonth = new Date(`${year}-${monthStr}-01T00:00:00.000Z`);
+      const lastDay = new Date(year, localNow.getUTCMonth() + 1, 0).getDate();
+      const endOfMonth = new Date(`${year}-${monthStr}-${String(lastDay).padStart(2, '0')}T23:59:59.999Z`);
 
       // Записи сегодня
       const appointmentsToday = await prisma.appointment.count({

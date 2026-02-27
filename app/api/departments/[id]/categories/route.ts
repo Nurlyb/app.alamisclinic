@@ -15,7 +15,8 @@ import { extractIdFromUrl } from '@/lib/utils/url';
 
 async function getHandler(request: NextRequest, user: JWTPayload) {
   try {
-    const id = extractIdFromUrl(request.url);
+    // Извлекаем ID отделения (второй сегмент с конца, т.к. последний - "categories")
+    const id = extractIdFromUrl(request.url, 2);
 
     // Проверка существования отделения
     const department = await prisma.department.findUnique({

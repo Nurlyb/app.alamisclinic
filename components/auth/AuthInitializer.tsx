@@ -18,7 +18,7 @@ export function AuthInitializer({ children }: AuthInitializerProps) {
       if (accessToken && refreshToken) {
         try {
           // Пытаемся получить данные текущего пользователя
-          const response = await api.get('/api/auth/me');
+          const response = await api.get<{ data: any }>('/api/auth/me');
           
           if (response.data?.data) {
             // Токен валиден, обновляем данные пользователя

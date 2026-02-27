@@ -2,8 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'alamis-clinic',
-      script: 'node_modules/.bin/next',
-      args: 'start -p 3000',
+      script: 'server.js',
       cwd: '/var/www/app.alamisclinic',
       instances: 1,
       exec_mode: 'fork',

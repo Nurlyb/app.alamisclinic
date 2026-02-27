@@ -52,8 +52,16 @@ class APIClient {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
     };
+
+    // Добавляем дополнительные headers из options
+    if (options.headers) {
+      Object.entries(options.headers).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          headers[key] = value;
+        }
+      });
+    }
 
     if (accessToken) {
       headers['Authorization'] = `Bearer ${accessToken}`;

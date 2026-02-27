@@ -34,21 +34,19 @@ export const GET = withAuth(
       const endOfMonth = new Date(`${year}-${monthStr}-${String(lastDay).padStart(2, '0')}T23:59:59.999Z`);
 
       // Записи сегодня
-      const appointmentsToday = await prisma.appointment.count({
-        where: {
-          datetime: {
-            gte: startOfToday,
-            lte: endOfToday,
-          },
-        },
-      });
+      const appointmentsToday = await prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*)::int as count 
+        FROM appointments 
+        WHERE DATE(datetime) = ${todayStr}
+      `;
 
       console.log('Dashboard API - Today:', {
         now: now.toISOString(),
         localNow: localNow.toISOString(),
+        todayStr,
         startOfToday: startOfToday.toISOString(),
         endOfToday: endOfToday.toISOString(),
-        appointmentsToday,
+        appointmentsToday: Number(appointmentsToday[0].count),
       });
 
       // Пациенты сегодня
@@ -288,7 +286,7 @@ export const GET = withAuth(
 
       return successResponse({
         today: {
-          appointments: appointmentsToday,
+          appointments: Number(appointmentsToday[0].count),
           patients: patientsToday,
           revenue: revenueToday,
         },

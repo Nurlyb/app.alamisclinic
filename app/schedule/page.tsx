@@ -744,7 +744,11 @@ export default function SchedulePage() {
                             Редактировать
                           </Button>
                         )}
-                        {can('appointments:delete') && (
+                        {/* Оператор может удалять только свои записи, остальные - все */}
+                        {(
+                          (user?.role === 'OPERATOR' && selectedAppointment.managerId === user?.id && can('appointments:delete')) ||
+                          (user?.role !== 'OPERATOR' && can('appointments:delete'))
+                        ) && (
                           <Button 
                             variant="outline" 
                             className="flex-1"
@@ -764,6 +768,13 @@ export default function SchedulePage() {
                   {isPastTime && (
                     <div className="text-center text-sm text-gray-500 py-4">
                       ⏰ Редактирование недоступно - время записи прошло
+                    </div>
+                  )}
+                  
+                  {/* Сообщение для оператора о чужой записи */}
+                  {!isPastTime && user?.role === 'OPERATOR' && selectedAppointment.managerId !== user?.id && (
+                    <div className="text-center text-sm text-amber-600 py-4 bg-amber-50 rounded-lg">
+                      ℹ️ Это запись другого оператора. Вы можете только просматривать её.
                     </div>
                   )}
                 </div>

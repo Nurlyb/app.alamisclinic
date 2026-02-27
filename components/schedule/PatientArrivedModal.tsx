@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -83,13 +83,21 @@ export function PatientArrivedModal({
   } = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
-      amount: appointment ? appointment.service.price - appointment.prepayment : 0,
+      amount: 0,
       method: 'CASH',
       cashAmount: 0,
       cardAmount: 0,
       cardType: 'KASPI',
     },
   });
+
+  // Автоматически устанавливаем сумму при открытии модального окна
+  useEffect(() => {
+    if (appointment && isOpen) {
+      const remainingAmount = appointment.service.price - appointment.prepayment;
+      setValue('amount', remainingAmount);
+    }
+  }, [appointment, isOpen, setValue]);
 
   const selectedMethod = watch('method');
   const cashAmount = watch('cashAmount') || 0;
@@ -215,7 +223,7 @@ export function PatientArrivedModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isCompleted ? 'Оплата завершена' : 'Пациент прибыл'}
@@ -226,28 +234,28 @@ export function PatientArrivedModal({
         </DialogHeader>
 
         {!isCompleted ? (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
             {/* Service Info */}
-            <div className="p-4 bg-gray-50 rounded-lg space-y-2">
+            <div className="p-3 bg-gray-50 rounded-lg space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Услуга:</span>
+                <span className="text-gray-600">Услуга:</span>
                 <span className="font-medium">{appointment.service.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Стоимость:</span>
+                <span className="text-gray-600">Стоимость:</span>
                 <span className="font-medium">
                   {appointment.service.price.toLocaleString()} ₸
                 </span>
               </div>
               {appointment.prepayment > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Предоплата:</span>
+                  <span className="text-gray-600">Предоплата:</span>
                   <span className="font-medium text-green-600">
                     -{appointment.prepayment.toLocaleString()} ₸
                   </span>
                 </div>
               )}
-              <div className="flex justify-between pt-2 border-t border-gray-200">
+              <div className="flex justify-between pt-1.5 border-t border-gray-200">
                 <span className="font-medium">К оплате:</span>
                 <span className="text-lg font-bold text-blue-600">
                   {remainingAmount.toLocaleString()} ₸
@@ -257,20 +265,20 @@ export function PatientArrivedModal({
 
             {/* Payment Amount */}
             <div>
-              <Label>Сумма оплаты (₸)</Label>
+              <Label className="text-sm">Сумма оплаты (₸)</Label>
               <Input
                 type="number"
                 {...register('amount', { valueAsNumber: true })}
-                className="mt-2"
+                className="mt-1.5"
               />
               {errors.amount && (
-                <p className="text-sm text-red-600 mt-1">{errors.amount.message}</p>
+                <p className="text-xs text-red-600 mt-1">{errors.amount.message}</p>
               )}
             </div>
 
             {/* Payment Method */}
             <div>
-              <Label>Способ оплаты</Label>
+              <Label className="text-sm">Способ оплаты</Label>
               <Select
                 value={watch('method')}
                 onValueChange={(value) => {
@@ -282,7 +290,7 @@ export function PatientArrivedModal({
                   }
                 }}
               >
-                <SelectTrigger className="mt-2">
+                <SelectTrigger className="mt-1.5">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -314,23 +322,23 @@ export function PatientArrivedModal({
                 </SelectContent>
               </Select>
               {errors.method && (
-                <p className="text-sm text-red-600 mt-1">{errors.method.message}</p>
+                <p className="text-xs text-red-600 mt-1">{errors.method.message}</p>
               )}
             </div>
 
             {/* Mixed Payment Details */}
             {selectedMethod === 'MIXED' && (
-              <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="space-y-2.5 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-sm font-medium text-blue-900">
                   Разделение оплаты
                 </p>
                 
                 <div>
-                  <Label>Наличными (₸)</Label>
+                  <Label className="text-sm">Наличными (₸)</Label>
                   <Input
                     type="number"
                     {...register('cashAmount', { valueAsNumber: true })}
-                    className="mt-2"
+                    className="mt-1.5"
                     placeholder="0"
                     onChange={(e) => {
                       const cash = parseFloat(e.target.value) || 0;
@@ -341,11 +349,11 @@ export function PatientArrivedModal({
                 </div>
 
                 <div>
-                  <Label>Картой (₸)</Label>
+                  <Label className="text-sm">Картой (₸)</Label>
                   <Input
                     type="number"
                     {...register('cardAmount', { valueAsNumber: true })}
-                    className="mt-2"
+                    className="mt-1.5"
                     placeholder="0"
                     onChange={(e) => {
                       const card = parseFloat(e.target.value) || 0;
@@ -356,12 +364,12 @@ export function PatientArrivedModal({
                 </div>
 
                 <div>
-                  <Label>Тип карты</Label>
+                  <Label className="text-sm">Тип карты</Label>
                   <Select
                     value={watch('cardType')}
                     onValueChange={(value) => setValue('cardType', value as any)}
                   >
-                    <SelectTrigger className="mt-2">
+                    <SelectTrigger className="mt-1.5">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -373,15 +381,15 @@ export function PatientArrivedModal({
 
                 {/* Summary */}
                 <div className="pt-2 border-t border-blue-300">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs">
                     <span>Наличными:</span>
                     <span className="font-medium">{cashAmount.toLocaleString()} ₸</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs">
                     <span>Картой:</span>
                     <span className="font-medium">{cardAmount.toLocaleString()} ₸</span>
                   </div>
-                  <div className="flex justify-between text-sm font-bold pt-1 border-t border-blue-300 mt-1">
+                  <div className="flex justify-between text-xs font-bold pt-1 border-t border-blue-300 mt-1">
                     <span>Итого:</span>
                     <span className={cashAmount + cardAmount === totalAmount ? 'text-green-600' : 'text-red-600'}>
                       {(cashAmount + cardAmount).toLocaleString()} ₸
@@ -397,11 +405,11 @@ export function PatientArrivedModal({
             )}
 
             {errors.cashAmount && (
-              <p className="text-sm text-red-600">{errors.cashAmount.message}</p>
+              <p className="text-xs text-red-600">{errors.cashAmount.message}</p>
             )}
 
             {/* Submit */}
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-2 pt-2">
               <Button
                 type="button"
                 variant="outline"

@@ -70,7 +70,7 @@ export interface Service {
   code: string;
   price: number;
   doctorPercentage: number;
-  duration: number;
+  durationMin: number;
   departmentId: string;
   department?: Department;
   categoryId?: string;

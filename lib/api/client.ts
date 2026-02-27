@@ -50,7 +50,7 @@ class APIClient {
   ): Promise<{ data?: T; error?: string }> {
     const { accessToken } = useAuthStore.getState();
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers,
     };

@@ -28,7 +28,7 @@ export interface TokenPair {
  */
 export function generateAccessToken(payload: JWTPayload): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
+    expiresIn: JWT_EXPIRES_IN as string,
     issuer: 'clinic-management-system',
     audience: 'clinic-api',
   });
@@ -39,7 +39,7 @@ export function generateAccessToken(payload: JWTPayload): string {
  */
 export function generateRefreshToken(payload: JWTPayload): string {
   return jwt.sign(payload, JWT_REFRESH_SECRET, {
-    expiresIn: JWT_REFRESH_EXPIRES_IN,
+    expiresIn: JWT_REFRESH_EXPIRES_IN as string,
     issuer: 'clinic-management-system',
     audience: 'clinic-api',
   });

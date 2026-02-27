@@ -4,11 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { 
   Calendar, 
-  CheckCircle, 
   UserCheck, 
-  CheckSquare, 
   XCircle, 
-  UserX,
   ArrowRightLeft,
   Clock,
   Loader2
@@ -78,13 +75,6 @@ export function AppointmentStats({ date, managerId }: AppointmentStatsProps) {
       bgColor: 'bg-yellow-50',
     },
     {
-      label: 'Подтверждено',
-      value: stats.confirmed,
-      icon: CheckCircle,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-    },
-    {
       label: 'Прибыл',
       value: stats.arrived,
       icon: UserCheck,
@@ -92,25 +82,11 @@ export function AppointmentStats({ date, managerId }: AppointmentStatsProps) {
       bgColor: 'bg-cyan-50',
     },
     {
-      label: 'Выполнено',
-      value: stats.done,
-      icon: CheckSquare,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50',
-    },
-    {
       label: 'Отменено',
       value: stats.cancelled,
       icon: XCircle,
       color: 'text-red-600',
       bgColor: 'bg-red-50',
-    },
-    {
-      label: 'Не пришел',
-      value: stats.noShow,
-      icon: UserX,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
     },
     {
       label: 'Перенесено',
@@ -126,7 +102,7 @@ export function AppointmentStats({ date, managerId }: AppointmentStatsProps) {
       <h3 className="text-sm font-medium text-gray-700 mb-3">
         📊 Статистика за {format(date, 'dd.MM.yyyy')}
       </h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {statItems.map((item) => {
           const Icon = item.icon;
           return (

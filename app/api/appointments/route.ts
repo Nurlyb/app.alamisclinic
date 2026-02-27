@@ -114,15 +114,21 @@ export const GET = withAuth(
       });
 
       // Преобразуем datetime в date и time, и blacklist в isBlacklisted
-      const formattedAppointments = appointments.map((apt) => ({
-        ...apt,
-        date: apt.datetime.toISOString().split('T')[0],
-        time: apt.datetime.toTimeString().slice(0, 5),
-        patient: {
-          ...apt.patient,
-          isBlacklisted: apt.patient.blacklist,
-        },
-      }));
+      const formattedAppointments = appointments.map((apt) => {
+        // Используем UTC для корректного отображения времени
+        const hours = apt.datetime.getUTCHours().toString().padStart(2, '0');
+        const minutes = apt.datetime.getUTCMinutes().toString().padStart(2, '0');
+        
+        return {
+          ...apt,
+          date: apt.datetime.toISOString().split('T')[0],
+          time: `${hours}:${minutes}`,
+          patient: {
+            ...apt.patient,
+            isBlacklisted: apt.patient.blacklist,
+          },
+        };
+      });
 
       return successResponse(formattedAppointments);
     } catch (error) {

@@ -13,12 +13,16 @@ import {
 export const GET = withAuth(
   async (request, user) => {
     try {
+      // Используем часовой пояс Казахстана (UTC+5)
       const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      const kazakhstanOffset = 5 * 60; // 5 часов в минутах
+      const localNow = new Date(now.getTime() + kazakhstanOffset * 60 * 1000);
+      
+      const startOfToday = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate());
+      const endOfToday = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate(), 23, 59, 59);
 
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      const startOfMonth = new Date(localNow.getFullYear(), localNow.getMonth(), 1);
+      const endOfMonth = new Date(localNow.getFullYear(), localNow.getMonth() + 1, 0, 23, 59, 59);
 
       // Записи сегодня
       const appointmentsToday = await prisma.appointment.count({

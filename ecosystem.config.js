@@ -2,8 +2,8 @@ module.exports = {
   apps: [
     {
       name: 'alamis-clinic',
-      script: 'node_modules/next/dist/bin/next',
-      args: 'start',
+      script: 'node_modules/.bin/next',
+      args: 'start -p 3000',
       cwd: '/var/www/app.alamisclinic',
       instances: 1,
       exec_mode: 'fork',
@@ -13,9 +13,9 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3000,
       },
-      error_file: '/var/www/app.alamisclinic/logs/error.log',
-      out_file: '/var/www/app.alamisclinic/logs/out.log',
-      log_file: '/var/www/app.alamisclinic/logs/combined.log',
+      error_file: './logs/error.log',
+      out_file: './logs/out.log',
+      log_file: './logs/combined.log',
       time: true,
     },
   ],

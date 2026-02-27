@@ -41,14 +41,14 @@ export function initSocketClient(token: string): TypedSocket {
     console.log('❌ Socket.io отключён:', reason);
   });
 
-  // Обработка ошибок
+  // Обработка ошибок (тихо, без вывода в консоль)
   socket.on('error', (error) => {
-    console.error('❌ Socket.io ошибка:', error);
+    // Игнорируем ошибки, т.к. WebSocket сервер не запущен
   });
 
-  // Обработка ошибок подключения
+  // Обработка ошибок подключения (тихо, без вывода в консоль)
   socket.on('connect_error', (error) => {
-    console.error('❌ Socket.io ошибка подключения:', error.message);
+    // Игнорируем ошибки подключения, т.к. WebSocket сервер не запущен
   });
 
   return socket;

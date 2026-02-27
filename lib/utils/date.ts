@@ -23,6 +23,13 @@ export function formatDate(date: Date | string, includeTime = false): string {
 }
 
 /**
+ * Форматирование даты и времени
+ */
+export function formatDateTime(date: Date | string): string {
+  return formatDate(date, true);
+}
+
+/**
  * Форматирование времени
  */
 export function formatTime(date: Date | string): string {

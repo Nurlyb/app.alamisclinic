@@ -73,7 +73,7 @@ export default function AuditPage() {
       if (filters.action) params.append('action', filters.action);
       if (filters.tableName) params.append('tableName', filters.tableName);
 
-      const response = await apiClient.get<{ data: { logs: AuditLog[]; pagination: any } }>(
+      const response = await apiClient.get<{ logs: AuditLog[]; pagination: any }>(
         `/api/audit?${params}`
       );
       return response.data;

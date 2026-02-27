@@ -37,9 +37,22 @@ import toast from 'react-hot-toast';
 
 const paymentSchema = z.object({
   amount: z.number().min(0, 'Сумма должна быть положительной'),
-  method: z.enum(['CASH', 'CARD', 'KASPI'] as const, {
+  method: z.enum(['CASH', 'KASPI', 'CARD', 'MIXED'] as const, {
     required_error: 'Выберите способ оплаты',
   }),
+  cashAmount: z.number().min(0).optional(),
+  cardAmount: z.number().min(0).optional(),
+  cardType: z.enum(['KASPI', 'CARD'] as const).optional(),
+}).refine((data) => {
+  if (data.method === 'MIXED') {
+    const cash = data.cashAmount || 0;
+    const card = data.cardAmount || 0;
+    return cash + card === data.amount;
+  }
+  return true;
+}, {
+  message: 'Сумма наличных и картой должна равняться общей сумме',
+  path: ['cashAmount'],
 });
 
 type PaymentFormData = z.infer<typeof paymentSchema>;
@@ -71,8 +84,16 @@ export function PatientArrivedModal({
     defaultValues: {
       amount: appointment ? appointment.service.price - appointment.prepayment : 0,
       method: 'CASH',
+      cashAmount: 0,
+      cardAmount: 0,
+      cardType: 'KASPI',
     },
   });
+
+  const selectedMethod = watch('method');
+  const cashAmount = watch('cashAmount') || 0;
+  const cardAmount = watch('cardAmount') || 0;
+  const totalAmount = watch('amount');
 
   // Отметить приход
   const arriveMutation = useMutation({
@@ -87,12 +108,33 @@ export function PatientArrivedModal({
     mutationFn: (data: PaymentFormData) => {
       if (!appointment) throw new Error('No appointment');
       
+      let cash = 0;
+      let cashless = 0;
+      let method: PaymentMethod = 'CASH';
+
+      if (data.method === 'CASH') {
+        cash = data.amount;
+        method = 'CASH';
+      } else if (data.method === 'KASPI') {
+        cashless = data.amount;
+        method = 'KASPI';
+      } else if (data.method === 'CARD') {
+        cashless = data.amount;
+        method = 'CARD';
+      } else if (data.method === 'MIXED') {
+        cash = data.cashAmount || 0;
+        cashless = data.cardAmount || 0;
+        method = data.cardType || 'KASPI';
+      }
+      
       return paymentsApi.create({
         appointmentId: appointment.id,
         patientId: appointment.patientId,
         serviceId: appointment.serviceId,
         amount: data.amount,
-        method: data.method as PaymentMethod,
+        cash,
+        cashless,
+        method,
       });
     },
     onSuccess: (response) => {
@@ -230,7 +272,14 @@ export function PatientArrivedModal({
               <Label>Способ оплаты</Label>
               <Select
                 value={watch('method')}
-                onValueChange={(value) => setValue('method', value as PaymentMethod)}
+                onValueChange={(value) => {
+                  setValue('method', value as any);
+                  // Сбросить суммы при смене метода
+                  if (value !== 'MIXED') {
+                    setValue('cashAmount', 0);
+                    setValue('cardAmount', 0);
+                  }
+                }}
               >
                 <SelectTrigger className="mt-2">
                   <SelectValue />
@@ -242,16 +291,23 @@ export function PatientArrivedModal({
                       Наличные
                     </div>
                   </SelectItem>
-                  <SelectItem value="CARD">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-4 h-4" />
-                      Карта
-                    </div>
-                  </SelectItem>
                   <SelectItem value="KASPI">
                     <div className="flex items-center gap-2">
                       <CreditCard className="w-4 h-4" />
-                      Kaspi
+                      Kaspi Pay
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="CARD">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      Halyk Bank
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="MIXED">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      <Banknote className="w-4 h-4" />
+                      Разным способом
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -260,6 +316,88 @@ export function PatientArrivedModal({
                 <p className="text-sm text-red-600 mt-1">{errors.method.message}</p>
               )}
             </div>
+
+            {/* Mixed Payment Details */}
+            {selectedMethod === 'MIXED' && (
+              <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm font-medium text-blue-900">
+                  Разделение оплаты
+                </p>
+                
+                <div>
+                  <Label>Наличными (₸)</Label>
+                  <Input
+                    type="number"
+                    {...register('cashAmount', { valueAsNumber: true })}
+                    className="mt-2"
+                    placeholder="0"
+                    onChange={(e) => {
+                      const cash = parseFloat(e.target.value) || 0;
+                      setValue('cashAmount', cash);
+                      setValue('cardAmount', totalAmount - cash);
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <Label>Картой (₸)</Label>
+                  <Input
+                    type="number"
+                    {...register('cardAmount', { valueAsNumber: true })}
+                    className="mt-2"
+                    placeholder="0"
+                    onChange={(e) => {
+                      const card = parseFloat(e.target.value) || 0;
+                      setValue('cardAmount', card);
+                      setValue('cashAmount', totalAmount - card);
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <Label>Тип карты</Label>
+                  <Select
+                    value={watch('cardType')}
+                    onValueChange={(value) => setValue('cardType', value as any)}
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="KASPI">Kaspi Pay</SelectItem>
+                      <SelectItem value="CARD">Halyk Bank</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Summary */}
+                <div className="pt-2 border-t border-blue-300">
+                  <div className="flex justify-between text-sm">
+                    <span>Наличными:</span>
+                    <span className="font-medium">{cashAmount.toLocaleString()} ₸</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Картой:</span>
+                    <span className="font-medium">{cardAmount.toLocaleString()} ₸</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold pt-1 border-t border-blue-300 mt-1">
+                    <span>Итого:</span>
+                    <span className={cashAmount + cardAmount === totalAmount ? 'text-green-600' : 'text-red-600'}>
+                      {(cashAmount + cardAmount).toLocaleString()} ₸
+                    </span>
+                  </div>
+                  {cashAmount + cardAmount !== totalAmount && (
+                    <p className="text-xs text-red-600 mt-1">
+                      Сумма должна равняться {totalAmount.toLocaleString()} ₸
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {errors.cashAmount && (
+              <p className="text-sm text-red-600">{errors.cashAmount.message}</p>
+            )}
 
             {/* Submit */}
             <div className="flex gap-2 pt-4">

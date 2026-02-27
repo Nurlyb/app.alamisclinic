@@ -6,6 +6,8 @@ export interface CreatePaymentData {
   patientId: string;
   serviceId: string;
   amount: number;
+  cash?: number;
+  cashless?: number;
   method: PaymentMethod;
 }
 

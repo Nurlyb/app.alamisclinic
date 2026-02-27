@@ -3,7 +3,7 @@
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import type { Permission } from '@/types';
+import type { Permission } from '@/lib/auth/rbac';
 
 interface AppShellProps {
   children: React.ReactNode;

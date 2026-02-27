@@ -74,10 +74,10 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Показываем toast с ошибкой
+    // Показываем toast с ошибкой (кроме 401 и 403)
     const errorMessage = (error.response?.data as any)?.error || 'Произошла ошибка';
     
-    if (error.response?.status !== 401) {
+    if (error.response?.status !== 401 && error.response?.status !== 403) {
       toast.error(errorMessage);
     }
 

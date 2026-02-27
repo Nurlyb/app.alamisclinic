@@ -94,7 +94,7 @@ export default function DirectionsPage() {
   };
 
   return (
-    <AppShell requiredPermissions={['view:directions']}>
+    <AppShell requiredPermissions={['directions:view:all', 'directions:view:own']}>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

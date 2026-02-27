@@ -77,7 +77,7 @@ export const POST = withAuth(
           code: data.code,
           name: data.name,
           price: data.price,
-          categoryId: data.categoryId,
+          ...(data.categoryId && { categoryId: data.categoryId }),
           departmentId: data.departmentId,
           durationMin: data.durationMin,
           isActive: data.isActive,

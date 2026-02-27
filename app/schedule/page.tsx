@@ -51,6 +51,7 @@ import { AppointmentForm } from '@/components/schedule/AppointmentForm';
 import { PatientArrivedModal } from '@/components/schedule/PatientArrivedModal';
 import { CancelAppointmentForm } from '@/components/schedule/CancelAppointmentForm';
 import { RescheduleAppointmentForm } from '@/components/schedule/RescheduleAppointmentForm';
+import { AppointmentStats } from '@/components/schedule/AppointmentStats';
 import { appointmentsApi } from '@/api/appointments.api';
 import type { Appointment, AppointmentStatus, Department, User as UserType } from '@/types';
 import toast from 'react-hot-toast';
@@ -142,13 +143,18 @@ export default function SchedulePage() {
     },
   });
 
-  // Фильтрация записей для оператора (видит только свои)
+  // Фильтрация записей для оператора и доктора (видят только свои)
   const visibleAppointments = appointments.filter((apt) => {
-    // Если у пользователя есть право видеть только свои записи
-    if (can('view:own:appointments') && !can('update:appointment')) {
-      // Показываем только записи, созданные этим оператором
+    // Доктор видит только свои записи (где он назначен доктором)
+    if (user?.role === 'DOCTOR') {
+      return apt.doctorId === user?.id;
+    }
+    
+    // Оператор видит только записи, которые он создал
+    if (can('appointments:view:own') && !can('appointments:view:all')) {
       return apt.managerId === user?.id;
     }
+    
     // Остальные роли видят все записи
     return true;
   });
@@ -215,7 +221,7 @@ export default function SchedulePage() {
   };
 
   return (
-    <AppShell requiredPermissions={['view:schedule']}>
+    <AppShell requiredPermissions={['appointments:view:all', 'appointments:view:own']}>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -240,7 +246,7 @@ export default function SchedulePage() {
               </p>
             )}
           </div>
-          {can('create:appointment') && user?.role !== 'DOCTOR' && user?.role !== 'RECEPTIONIST' && (
+          {can('appointments:create') && user?.role !== 'DOCTOR' && user?.role !== 'RECEPTIONIST' && (
             <Button onClick={() => {
               setSelectedTime('');
               setIsCreateOpen(true);
@@ -357,6 +363,14 @@ export default function SchedulePage() {
           )}
         </div>
 
+        {/* Statistics - для оператора и владельца */}
+        {(user?.role === 'OPERATOR' || user?.role === 'OWNER') && (
+          <AppointmentStats 
+            date={selectedDate} 
+            managerId={user?.role === 'OPERATOR' ? user.id : undefined}
+          />
+        )}
+
         {/* Schedule Grid */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           {isLoading ? (
@@ -395,7 +409,7 @@ export default function SchedulePage() {
                           <span className="text-gray-400 text-sm">
                             {isPastTime ? 'Прошло' : 'Свободно'}
                           </span>
-                          {can('create:appointment') && !isPastTime && user?.role !== 'DOCTOR' && user?.role !== 'RECEPTIONIST' && (
+                          {can('appointments:create') && !isPastTime && user?.role !== 'DOCTOR' && user?.role !== 'RECEPTIONIST' && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -467,7 +481,7 @@ export default function SchedulePage() {
                                 </button>
                                 
                                 {/* Кнопка создать запись для отмененных записей, если время не прошло */}
-                                {isCancelled && !isPastTime && can('create:appointment') && user?.role !== 'DOCTOR' && user?.role !== 'RECEPTIONIST' && (
+                                {isCancelled && !isPastTime && can('appointments:create') && user?.role !== 'DOCTOR' && user?.role !== 'RECEPTIONIST' && (
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -504,7 +518,7 @@ export default function SchedulePage() {
             <p className="text-gray-600 mb-4">
               На выбранную дату записей не найдено
             </p>
-            {can('create:appointment') && user?.role !== 'DOCTOR' && (
+            {can('appointments:create') && user?.role !== 'DOCTOR' && (
               <Button onClick={() => {
                 setSelectedTime('');
                 setIsCreateOpen(true);
@@ -520,12 +534,22 @@ export default function SchedulePage() {
       {/* Appointment Details Sheet */}
       <Sheet open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          {selectedAppointment && (
+          {selectedAppointment && (() => {
+            // Проверка на прошедшее время
+            const appointmentDateTime = new Date(selectedAppointment.date);
+            const [hours, minutes] = selectedAppointment.time.split(':');
+            appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            const isPastTime = appointmentDateTime < new Date();
+
+            return (
             <>
               <SheetHeader>
                 <SheetTitle>Детали записи</SheetTitle>
                 <SheetDescription>
                   {format(new Date(selectedAppointment.date), 'd MMMM yyyy', { locale: ru })} в {selectedAppointment.time}
+                  {isPastTime && (
+                    <span className="block text-red-600 text-xs mt-1">⏰ Время записи прошло</span>
+                  )}
                 </SheetDescription>
               </SheetHeader>
 
@@ -664,7 +688,7 @@ export default function SchedulePage() {
                 {/* Actions */}
                 <div className="space-y-2 pt-4 border-t">
                   {/* Кнопки для регистратуры - 3 кнопки */}
-                  {user?.role === 'RECEPTIONIST' && selectedAppointment.status !== 'CANCELLED' && selectedAppointment.status !== 'DONE' && selectedAppointment.status !== 'ARRIVED' && (
+                  {user?.role === 'RECEPTIONIST' && selectedAppointment.status !== 'CANCELLED' && selectedAppointment.status !== 'DONE' && selectedAppointment.status !== 'ARRIVED' && !isPastTime && (
                     <>
                       <Button 
                         className="w-full"
@@ -709,10 +733,13 @@ export default function SchedulePage() {
                   )}
 
                   {/* Кнопки для других ролей */}
-                  {user?.role !== 'RECEPTIONIST' && (
+                  {user?.role !== 'RECEPTIONIST' && !isPastTime && (
                     <>
-                      {/* Кнопка "Пациент прибыл" */}
-                      {selectedAppointment.status === 'CONFIRMED' && can('create:payment') && (
+                      {/* Кнопка "Пациент прибыл" - для любого статуса кроме отмененных и завершенных */}
+                      {selectedAppointment.status !== 'CANCELLED' && 
+                       selectedAppointment.status !== 'DONE' && 
+                       selectedAppointment.status !== 'ARRIVED' && 
+                       can('payments:create') && (
                         <Button 
                           className="w-full"
                           onClick={() => {
@@ -728,7 +755,7 @@ export default function SchedulePage() {
                         {/* Оператор может редактировать только свои записи, остальные - все */}
                         {(
                           (user?.role === 'OPERATOR' && selectedAppointment.managerId === user?.id) ||
-                          (user?.role !== 'OPERATOR' && can('update:appointment'))
+                          (user?.role !== 'OPERATOR' && can('appointments:update'))
                         ) && (
                           <Button 
                             variant="outline" 
@@ -741,7 +768,7 @@ export default function SchedulePage() {
                             Редактировать
                           </Button>
                         )}
-                        {can('delete:appointment') && (
+                        {can('appointments:delete') && (
                           <Button 
                             variant="outline" 
                             className="flex-1"
@@ -756,10 +783,18 @@ export default function SchedulePage() {
                       </div>
                     </>
                   )}
+                  
+                  {/* Сообщение если время прошло */}
+                  {isPastTime && (
+                    <div className="text-center text-sm text-gray-500 py-4">
+                      ⏰ Редактирование недоступно - время записи прошло
+                    </div>
+                  )}
                 </div>
               </div>
             </>
-          )}
+            );
+          })()}
         </SheetContent>
       </Sheet>
 

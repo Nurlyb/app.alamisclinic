@@ -12,11 +12,12 @@ import {
   notFoundResponse,
   internalErrorResponse,
 } from '@/lib/utils/response';
-import { extractIdFromUrl } from '@/lib/utils/url';
 
 async function handler(request: NextRequest, user: JWTPayload) {
   try {
-    const id = extractIdFromUrl(request.url);
+    // Extract ID from URL path: /api/appointments/[id]/arrive
+    const pathParts = new URL(request.url).pathname.split('/');
+    const id = pathParts[pathParts.length - 2]; // Get the ID before 'arrive'
     
     console.log('Arrive endpoint - ID:', id);
     console.log('Arrive endpoint - URL:', request.url);

@@ -1,174 +1,178 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useAuthStore } from '@/lib/store/auth';
-import { apiClient } from '@/lib/api/client';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, Edit, Trash2, Loader2, Building2, Briefcase } from 'lucide-react';
+import { AppShell } from '@/components/layout/AppShell';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { api } from '@/api/client';
+import { departmentsApi } from '@/api/departments.api';
+import { DepartmentForm } from '@/components/settings/DepartmentForm';
+import { ServiceForm } from '@/components/services/ServiceForm';
+import type { Department, Service } from '@/types';
+import toast from 'react-hot-toast';
 
 export default function SettingsPage() {
-  const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
-  const [users, setUsers] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'users' | 'departments' | 'services'>('users');
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('all');
+  
+  // Department modals
+  const [isDeptCreateOpen, setIsDeptCreateOpen] = useState(false);
+  const [isDeptEditOpen, setIsDeptEditOpen] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  
+  // Service modals
+  const [isServiceCreateOpen, setIsServiceCreateOpen] = useState(false);
+  const [isServiceEditOpen, setIsServiceEditOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-    if (user?.role !== 'OWNER') {
-      router.push('/dashboard');
-      return;
-    }
-    loadData();
-  }, [isAuthenticated, user, activeTab]);
+  // Загрузка отделений
+  const { data: departments = [], isLoading: deptLoading } = useQuery<Department[]>({
+    queryKey: ['departments'],
+    queryFn: async () => {
+      const response = await departmentsApi.getAll();
+      return response.data || [];
+    },
+  });
 
-  const loadData = async () => {
-    setLoading(true);
-    
-    if (activeTab === 'users') {
-      const { data } = await apiClient.get('/api/users');
-      if (data) setUsers(Array.isArray(data) ? data : []);
-    } else if (activeTab === 'departments') {
-      const { data } = await apiClient.get('/api/departments');
-      if (data) setDepartments(Array.isArray(data) ? data : []);
-    } else if (activeTab === 'services') {
-      const { data } = await apiClient.get('/api/services');
-      if (data) setServices(Array.isArray(data) ? data : []);
+  // Загрузка услуг
+  const { data: services = [], isLoading: servicesLoading } = useQuery<Service[]>({
+    queryKey: ['services'],
+    queryFn: async () => {
+      const response = await api.get<{ data: Service[] }>('/api/services');
+      return response.data || [];
+    },
+  });
+
+  // Удаление отделения
+  const deleteDeptMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/departments/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      toast.success('Отделение деактивировано');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Ошибка деактивации');
+    },
+  });
+
+  // Удаление услуги
+  const deleteServiceMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/services/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      toast.success('Услуга деактивирована');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Ошибка деактивации');
+    },
+  });
+
+  // Фильтрация услуг
+  const filteredServices = services.filter((service) => {
+    if (selectedDepartmentId !== 'all' && service.departmentId !== selectedDepartmentId) {
+      return false;
     }
-    
-    setLoading(false);
-  };
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        service.name.toLowerCase().includes(query) ||
+        service.code.toLowerCase().includes(query)
+      );
+    }
+    return true;
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <Link href="/dashboard" className="text-blue-600 hover:text-blue-700 text-sm mb-2 inline-block">
-                ← Назад
-              </Link>
-              <h1 className="text-2xl font-bold text-gray-900">⚙️ Настройки</h1>
-              <p className="text-sm text-gray-600">Управление пользователями и услугами</p>
-            </div>
-          </div>
+    <AppShell requiredPermissions={['departments:manage', 'services:manage']}>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Настройки</h1>
+          <p className="text-gray-600 mt-1">
+            Управление отделениями и услугами клиники
+          </p>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="flex -mb-px">
-              <button
-                onClick={() => setActiveTab('users')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 ${
-                  activeTab === 'users'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                👥 Пользователи
-              </button>
-              <button
-                onClick={() => setActiveTab('departments')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 ${
-                  activeTab === 'departments'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                🏥 Отделения
-              </button>
-              <button
-                onClick={() => setActiveTab('services')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 ${
-                  activeTab === 'services'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                💊 Услуги
-              </button>
-            </nav>
-          </div>
-        </div>
+        <Tabs defaultValue="departments" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="departments">
+              <Building2 className="w-4 h-4 mr-2" />
+              Отделения
+            </TabsTrigger>
+            <TabsTrigger value="services">
+              <Briefcase className="w-4 h-4 mr-2" />
+              Услуги
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Content */}
-        {loading ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Загрузка...</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {activeTab === 'users' && (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Имя
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Роль
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Отделение
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Телефон
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Статус
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {users.map((u: any) => (
-                      <tr key={u.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{u.name}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {u.role}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {u.department?.name || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {u.phone}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            u.isActive 
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {u.isActive ? 'Активен' : 'Неактивен'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+          {/* Departments Tab */}
+          <TabsContent value="departments" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-600">
+                Всего отделений: {departments.length}
+              </p>
+              <Button onClick={() => setIsDeptCreateOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Добавить отделение
+              </Button>
+            </div>
 
-            {activeTab === 'departments' && (
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {departments.map((dept: any) => (
-                    <div key={dept.id} className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
-                      <h3 className="font-semibold text-gray-900 mb-2">{dept.name}</h3>
-                      <p className="text-sm text-gray-600 mb-2">{dept.description}</p>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>Врачей: {dept._count?.users || 0}</span>
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              {deptLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+                  {departments.map((dept) => (
+                    <div
+                      key={dept.id}
+                      className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-300 transition-all"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <h3 className="font-semibold text-gray-900">{dept.name}</h3>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedDepartment(dept);
+                              setIsDeptEditOpen(true);
+                            }}
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          {dept.isActive && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm(`Деактивировать отделение "${dept.name}"?`)) {
+                                  deleteDeptMutation.mutate(dept.id);
+                                }
+                              }}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500">
+                          Услуг: {services.filter(s => s.departmentId === dept.id).length}
+                        </span>
                         <span className={dept.isActive ? 'text-green-600' : 'text-red-600'}>
                           {dept.isActive ? '● Активно' : '● Неактивно'}
                         </span>
@@ -176,64 +180,203 @@ export default function SettingsPage() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === 'services' && (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Название
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Отделение
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Цена
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        % врачу
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Статус
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {services.map((service: any) => (
-                      <tr key={service.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{service.name}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {service.department?.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                          {service.price?.toLocaleString('ru-KZ')} ₸
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {service.doctorPercentage}%
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            service.isActive 
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {service.isActive ? 'Активна' : 'Неактивна'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {!deptLoading && departments.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">Отделения не найдены</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Services Tab */}
+          <TabsContent value="services" className="space-y-4">
+            <div className="flex justify-between items-center gap-4">
+              <div className="flex-1 flex gap-4">
+                <Input
+                  placeholder="Поиск по названию или коду..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="max-w-md"
+                />
+                <select
+                  value={selectedDepartmentId}
+                  onChange={(e) => setSelectedDepartmentId(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="all">Все отделения</option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
-          </div>
-        )}
-      </main>
-    </div>
+              <Button onClick={() => setIsServiceCreateOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Добавить услугу
+              </Button>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              {servicesLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Код
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Название
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Отделение
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Цена
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Длительность
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          Действия
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredServices.map((service) => (
+                        <tr key={service.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {service.code}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {service.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {service.department?.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {service.price.toLocaleString()} ₸
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {service.durationMin} мин
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedService(service);
+                                  setIsServiceEditOpen(true);
+                                }}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              {service.isActive && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (confirm(`Деактивировать услугу "${service.name}"?`)) {
+                                      deleteServiceMutation.mutate(service.id);
+                                    }
+                                  }}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {!servicesLoading && filteredServices.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">Услуги не найдены</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Department Dialogs */}
+      <Dialog open={isDeptCreateOpen} onOpenChange={setIsDeptCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить отделение</DialogTitle>
+          </DialogHeader>
+          <DepartmentForm
+            onSuccess={() => {
+              setIsDeptCreateOpen(false);
+              queryClient.invalidateQueries({ queryKey: ['departments'] });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeptEditOpen} onOpenChange={setIsDeptEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Редактировать отделение</DialogTitle>
+          </DialogHeader>
+          {selectedDepartment && (
+            <DepartmentForm
+              department={selectedDepartment}
+              onSuccess={() => {
+                setIsDeptEditOpen(false);
+                setSelectedDepartment(null);
+                queryClient.invalidateQueries({ queryKey: ['departments'] });
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Service Dialogs */}
+      <Dialog open={isServiceCreateOpen} onOpenChange={setIsServiceCreateOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Добавить услугу</DialogTitle>
+          </DialogHeader>
+          <ServiceForm
+            onSuccess={() => {
+              setIsServiceCreateOpen(false);
+              queryClient.invalidateQueries({ queryKey: ['services'] });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isServiceEditOpen} onOpenChange={setIsServiceEditOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Редактировать услугу</DialogTitle>
+          </DialogHeader>
+          {selectedService && (
+            <ServiceForm
+              service={selectedService}
+              onSuccess={() => {
+                setIsServiceEditOpen(false);
+                setSelectedService(null);
+                queryClient.invalidateQueries({ queryKey: ['services'] });
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </AppShell>
   );
 }

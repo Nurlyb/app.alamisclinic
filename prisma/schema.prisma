@@ -204,15 +204,15 @@ model Service {
   code         String   // Код услуги (N002, 1.2 и т.д.)
   name         String   // Наименование услуги
   price        Decimal  @db.Decimal(10, 2)
-  categoryId   String
+  categoryId   String?
   departmentId String
   durationMin  Int      // Длительность в минутах для расписания
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   // Relations
-  category     ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  department   Department      @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  category     ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  department   Department       @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   directions   Direction[]
 

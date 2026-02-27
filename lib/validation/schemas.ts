@@ -162,7 +162,7 @@ export const createServiceSchema = z.object({
   code: z.string().min(1, 'Код услуги обязателен'),
   name: z.string().min(1, 'Название услуги обязательно'),
   price: z.number().positive('Цена должна быть положительной'),
-  categoryId: z.string().uuid('Некорректный ID категории'),
+  categoryId: z.string().uuid('Некорректный ID категории').optional(),
   departmentId: z.string().uuid('Некорректный ID отделения'),
   durationMin: z.number().int().positive('Длительность должна быть положительной'),
   isActive: z.boolean().default(true),

@@ -47,16 +47,14 @@ export function Sidebar() {
     }
 
     // Расписание - для всех остальных
-    if (can('view:schedule')) {
-      items.push({
-        label: 'Расписание',
-        href: '/schedule',
-        icon: <Calendar className="w-5 h-5" />,
-      });
-    }
+    items.push({
+      label: 'Расписание',
+      href: '/schedule',
+      icon: <Calendar className="w-5 h-5" />,
+    });
 
     // Направления - для операторов и врачей
-    if (can('view:directions')) {
+    if (can('directions:view:all') || can('directions:view:own')) {
       items.push({
         label: 'Направления',
         href: '/directions',
@@ -66,7 +64,7 @@ export function Sidebar() {
     }
 
     // Пациенты
-    if (can('view:patients')) {
+    if (can('patients:view')) {
       items.push({
         label: 'Пациенты',
         href: '/patients',
@@ -75,7 +73,7 @@ export function Sidebar() {
     }
 
     // Касса/Платежи
-    if (can('view:payments')) {
+    if (can('payments:view:all') || can('payments:view:own')) {
       items.push({
         label: user?.role === 'RECEPTIONIST' ? 'Касса' : 'Платежи',
         href: '/payments',
@@ -84,7 +82,7 @@ export function Sidebar() {
     }
 
     // Зарплата - для врачей и владельца
-    if (can('view:salary')) {
+    if (can('salary:view:all') || can('salary:view:own')) {
       items.push({
         label: user?.role === 'DOCTOR' ? 'Моя зарплата' : 'Зарплаты',
         href: '/salary',
@@ -93,7 +91,7 @@ export function Sidebar() {
     }
 
     // Аналитика - только для владельца и менеджера
-    if (can('view:analytics')) {
+    if (can('analytics:view:all') || can('analytics:view:own')) {
       items.push({
         label: 'Аналитика',
         href: '/analytics',
@@ -101,8 +99,17 @@ export function Sidebar() {
       });
     }
 
+    // Пользователи - только для владельца
+    if (can('users:manage')) {
+      items.push({
+        label: 'Пользователи',
+        href: '/users',
+        icon: <Briefcase className="w-5 h-5" />,
+      });
+    }
+
     // Настройки - только для владельца
-    if (can('manage:users') || can('manage:services')) {
+    if (can('users:manage') || can('services:manage') || can('departments:manage')) {
       items.push({
         label: 'Настройки',
         href: '/settings',
@@ -111,7 +118,7 @@ export function Sidebar() {
     }
 
     // Журнал действий - только для владельца
-    if (can('view:audit_log')) {
+    if (can('audit:view')) {
       items.push({
         label: 'Журнал действий',
         href: '/audit',

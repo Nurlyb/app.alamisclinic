@@ -90,35 +90,20 @@ export function RescheduleAppointmentForm({
         throw new Error('Выбранное время уже занято');
       }
 
-      const newDatetime = `${newDate}T${newTime}:00`;
+      const localDateTime = new Date(`${newDate}T${newTime}:00`);
+      const newDatetime = localDateTime.toISOString();
       
-      return appointmentsApi.update(appointment.id, {
+      // Обновляем существующую запись с новой датой/временем
+      return api.patch(`/api/appointments/${appointment.id}`, {
+        datetime: newDatetime,
         status: AppointmentStatus.TRANSFERRED,
         comment: `${appointment.comment || ''}\n\nПеренесено с ${appointment.date} ${appointment.time} на ${newDate} ${newTime}. Причина: ${reason}`.trim(),
       });
     },
-    onSuccess: async () => {
-      // Создаем новую запись на новое время
-      try {
-        const newDatetime = `${newDate}T${newTime}:00`;
-        await api.post('/api/appointments', {
-          patientId: appointment.patientId,
-          doctorId: appointment.doctorId,
-          serviceId: appointment.serviceId,
-          departmentId: appointment.departmentId,
-          datetime: newDatetime,
-          prepayment: appointment.prepayment,
-          comment: `Перенесено с ${appointment.date} ${appointment.time}. ${reason}`,
-          source: appointment.patient.source,
-        });
-
-        queryClient.invalidateQueries({ queryKey: ['appointments'] });
-        toast.success('Запись успешно перенесена');
-        onSuccess?.();
-      } catch (error: any) {
-        toast.error('Ошибка создания новой записи');
-        console.error(error);
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      toast.success('Запись успешно перенесена');
+      onSuccess?.();
     },
     onError: (error: any) => {
       const errorMessage = error.message || error.response?.data?.error || 'Ошибка переноса';
@@ -243,7 +228,7 @@ export function RescheduleAppointmentForm({
       </div>
 
       <p className="text-xs text-gray-500 text-center">
-        Старая запись будет отменена, создастся новая на выбранное время
+        Запись будет перенесена на новое время с сохранением всех данных
       </p>
     </form>
   );

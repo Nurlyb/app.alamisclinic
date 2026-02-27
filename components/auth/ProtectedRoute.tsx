@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
-import type { Permission } from '@/types';
+import type { Permission } from '@/lib/auth/rbac';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

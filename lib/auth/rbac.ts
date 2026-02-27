@@ -3,7 +3,10 @@
  * Определение прав доступа для каждой роли
  */
 
-import { Role } from '@prisma/client';
+import { Role as PrismaRole } from '@prisma/client';
+
+// Используем строковый тип для совместимости
+type Role = 'OPERATOR' | 'RECEPTIONIST' | 'ASSISTANT' | 'DOCTOR' | 'OWNER';
 
 export type Permission =
   // Расписание
@@ -160,29 +163,31 @@ const rolePermissions: Record<Role, Permission[]> = {
 /**
  * Проверка наличия права у роли
  */
-export function hasPermission(role: Role, permission: Permission): boolean {
-  return rolePermissions[role]?.includes(permission) ?? false;
+export function hasPermission(role: Role | string, permission: Permission): boolean {
+  const roleKey = role as Role;
+  return rolePermissions[roleKey]?.includes(permission) ?? false;
 }
 
 /**
  * Проверка наличия хотя бы одного из прав
  */
-export function hasAnyPermission(role: Role, permissions: Permission[]): boolean {
+export function hasAnyPermission(role: Role | string, permissions: Permission[]): boolean {
   return permissions.some((permission) => hasPermission(role, permission));
 }
 
 /**
  * Проверка наличия всех прав
  */
-export function hasAllPermissions(role: Role, permissions: Permission[]): boolean {
+export function hasAllPermissions(role: Role | string, permissions: Permission[]): boolean {
   return permissions.every((permission) => hasPermission(role, permission));
 }
 
 /**
  * Получение всех прав роли
  */
-export function getRolePermissions(role: Role): Permission[] {
-  return rolePermissions[role] || [];
+export function getRolePermissions(role: Role | string): Permission[] {
+  const roleKey = role as Role;
+  return rolePermissions[roleKey] || [];
 }
 
 /**

@@ -69,9 +69,16 @@ async function putHandler(request: NextRequest, user: JWTPayload) {
   try {
     const id = extractIdFromUrl(request.url);
     const body = await request.json();
+    
+    console.log('PUT/PATCH /api/appointments/[id]');
+    console.log('ID:', id);
+    console.log('Body:', JSON.stringify(body, null, 2));
+    console.log('User:', user.userId, user.role);
+    
     const validation = updateAppointmentSchema.safeParse(body);
 
       if (!validation.success) {
+        console.error('Validation error:', validation.error);
         return validationErrorResponse(validation.error);
       }
 

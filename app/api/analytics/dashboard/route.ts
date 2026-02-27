@@ -40,6 +40,14 @@ export const GET = withAuth(
         },
       });
 
+      console.log('Dashboard API - Today:', {
+        now: now.toISOString(),
+        localNow: localNow.toISOString(),
+        startOfToday: startOfToday.toISOString(),
+        endOfToday: endOfToday.toISOString(),
+        appointmentsToday,
+      });
+
       // Пациенты сегодня
       const patientsToday = await prisma.appointment.count({
         where: {

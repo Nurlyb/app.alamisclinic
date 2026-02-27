@@ -196,8 +196,16 @@ export function AppointmentForm({
       }
 
       // Преобразуем date + time в datetime (ISO 8601)
-      const localDateTime = new Date(`${data.date}T${data.time}:00`);
-      const datetime = localDateTime.toISOString();
+      // Создаем дату в UTC, чтобы избежать проблем с часовыми поясами
+      const [hours, minutes] = data.time.split(':');
+      const datetime = new Date(Date.UTC(
+        parseInt(data.date.split('-')[0]), // year
+        parseInt(data.date.split('-')[1]) - 1, // month (0-indexed)
+        parseInt(data.date.split('-')[2]), // day
+        parseInt(hours),
+        parseInt(minutes),
+        0
+      )).toISOString();
       
       // Если редактируем - обновляем, иначе создаём
       if (isEditMode && appointment) {

@@ -6,10 +6,10 @@
 import jwt from 'jsonwebtoken';
 import { Role } from '@prisma/client';
 
-const JWT_SECRET: string = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
-const JWT_REFRESH_SECRET: string = process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key';
-const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '15m';
-const JWT_REFRESH_EXPIRES_IN: string = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 export interface JWTPayload {
   userId: string;
@@ -27,7 +27,7 @@ export interface TokenPair {
  * Генерация access токена
  */
 export function generateAccessToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET as jwt.Secret, {
+  return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
     issuer: 'clinic-management-system',
     audience: 'clinic-api',
@@ -38,7 +38,7 @@ export function generateAccessToken(payload: JWTPayload): string {
  * Генерация refresh токена
  */
 export function generateRefreshToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_REFRESH_SECRET as jwt.Secret, {
+  return jwt.sign(payload, JWT_REFRESH_SECRET, {
     expiresIn: JWT_REFRESH_EXPIRES_IN,
     issuer: 'clinic-management-system',
     audience: 'clinic-api',
@@ -60,7 +60,7 @@ export function generateTokenPair(payload: JWTPayload): TokenPair {
  */
 export function verifyAccessToken(token: string): JWTPayload {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET as jwt.Secret, {
+    const decoded = jwt.verify(token, JWT_SECRET, {
       issuer: 'clinic-management-system',
       audience: 'clinic-api',
     }) as JWTPayload;
@@ -81,7 +81,7 @@ export function verifyAccessToken(token: string): JWTPayload {
  */
 export function verifyRefreshToken(token: string): JWTPayload {
   try {
-    const decoded = jwt.verify(token, JWT_REFRESH_SECRET as jwt.Secret, {
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET, {
       issuer: 'clinic-management-system',
       audience: 'clinic-api',
     }) as JWTPayload;

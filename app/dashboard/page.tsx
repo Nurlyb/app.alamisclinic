@@ -8,14 +8,9 @@ import {
   Users, 
   DollarSign, 
   TrendingUp,
-  Clock,
-  CheckCircle,
-  XCircle,
   Activity
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/api/client';
@@ -43,7 +38,7 @@ export default function DashboardPage() {
       );
       return response.data;
     },
-    enabled: can('view:analytics') && user?.role !== 'OPERATOR',
+    enabled: can('analytics:view:all') && user?.role !== 'OPERATOR',
   });
 
   const stats = [
@@ -53,7 +48,7 @@ export default function DashboardPage() {
       icon: Calendar,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
-      visible: can('view:schedule'),
+      visible: can('appointments:view:all'),
     },
     {
       title: 'Пациентов сегодня',
@@ -61,7 +56,7 @@ export default function DashboardPage() {
       icon: Users,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
-      visible: can('view:patients'),
+      visible: can('patients:view'),
     },
     {
       title: 'Выручка сегодня',
@@ -69,7 +64,7 @@ export default function DashboardPage() {
       icon: DollarSign,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
-      visible: can('view:analytics'),
+      visible: can('analytics:view:all'),
     },
     {
       title: 'Конверсия за месяц',
@@ -77,7 +72,7 @@ export default function DashboardPage() {
       icon: TrendingUp,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
-      visible: can('view:analytics'),
+      visible: can('analytics:view:all'),
     },
   ];
 
@@ -89,7 +84,7 @@ export default function DashboardPage() {
       href: '/schedule',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
-      visible: can('view:schedule'),
+      visible: can('appointments:view:all'),
     },
     {
       title: 'Пациенты',
@@ -98,7 +93,7 @@ export default function DashboardPage() {
       href: '/patients',
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-      visible: can('view:patients'),
+      visible: can('patients:view'),
     },
     {
       title: 'Касса',
@@ -107,7 +102,7 @@ export default function DashboardPage() {
       href: '/payments',
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
-      visible: can('view:payments'),
+      visible: can('payments:view:all'),
     },
     {
       title: 'Аналитика',
@@ -116,7 +111,7 @@ export default function DashboardPage() {
       href: '/analytics',
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
-      visible: can('view:analytics'),
+      visible: can('analytics:view:all'),
     },
   ];
 
@@ -139,7 +134,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        {can('view:analytics') && (
+        {can('analytics:view:all') && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats
               .filter((stat) => stat.visible)
@@ -191,7 +186,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Top Doctors */}
-        {can('view:analytics') && analytics?.topDoctors && (
+        {can('analytics:view:all') && analytics?.topDoctors && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Топ врачей за месяц
@@ -232,7 +227,7 @@ export default function DashboardPage() {
         )}
 
         {/* Top Services */}
-        {can('view:analytics') && analytics?.topServices && (
+        {can('analytics:view:all') && analytics?.topServices && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Популярные услуги за месяц

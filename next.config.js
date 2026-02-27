@@ -3,9 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   
-  // Для custom server
-  output: 'standalone',
-  
   // Оптимизация
   compress: true,
   

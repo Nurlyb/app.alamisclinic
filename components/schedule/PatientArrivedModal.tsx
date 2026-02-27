@@ -32,7 +32,8 @@ import {
 } from '@/components/ui/select';
 import { appointmentsApi } from '@/api/appointments.api';
 import { paymentsApi } from '@/api/payments.api';
-import type { Appointment, PaymentMethod } from '@/types';
+import type { Appointment } from '@/types';
+import { PaymentMethod } from '@/types';
 import toast from 'react-hot-toast';
 
 const paymentSchema = z.object({

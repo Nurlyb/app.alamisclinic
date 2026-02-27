@@ -126,7 +126,7 @@ export const GET = withAuth(
         datetime: payment.createdAt,
         patient: {
           fullName: payment.appointment.patient.fullName,
-          iin: payment.appointment.patient.iin,
+          iin: payment.appointment.patient.iin || '',
         },
         department: payment.appointment.department.name,
         doctor: payment.appointment.doctor.name,

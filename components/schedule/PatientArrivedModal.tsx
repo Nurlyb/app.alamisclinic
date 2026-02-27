@@ -92,7 +92,7 @@ export function PatientArrivedModal({
         patientId: appointment.patientId,
         serviceId: appointment.serviceId,
         amount: data.amount,
-        method: data.method,
+        method: data.method as PaymentMethod,
       });
     },
     onSuccess: (response) => {

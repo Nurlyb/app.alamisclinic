@@ -237,6 +237,7 @@ export function AppointmentForm({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments-stats'] });
       toast.success(isEditMode ? 'Запись успешно обновлена' : 'Запись успешно создана');
       onSuccess?.();
     },

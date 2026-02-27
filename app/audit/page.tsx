@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { api } from '@/lib/api/client';
+import { apiClient } from '@/lib/api/client';
 import { formatDateTime } from '@/lib/utils/date';
 
 interface AuditLog {
@@ -73,7 +73,7 @@ export default function AuditPage() {
       if (filters.action) params.append('action', filters.action);
       if (filters.tableName) params.append('tableName', filters.tableName);
 
-      const response = await api.get<{ data: { logs: AuditLog[]; pagination: any } }>(
+      const response = await apiClient.get<{ data: { logs: AuditLog[]; pagination: any } }>(
         `/api/audit?${params}`
       );
       return response.data;

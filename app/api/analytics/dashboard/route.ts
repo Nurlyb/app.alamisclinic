@@ -20,6 +20,16 @@ export const GET = withAuth(
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
+      // Записи сегодня
+      const appointmentsToday = await prisma.appointment.count({
+        where: {
+          datetime: {
+            gte: startOfToday,
+            lte: endOfToday,
+          },
+        },
+      });
+
       // Пациенты сегодня
       const patientsToday = await prisma.appointment.count({
         where: {
@@ -118,6 +128,90 @@ export const GET = withAuth(
         },
       });
 
+      // Топ докторов за месяц
+      const doctorStats = await prisma.appointment.groupBy({
+        by: ['doctorId'],
+        where: {
+          datetime: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+          status: 'DONE',
+        },
+        _count: {
+          id: true,
+        },
+      });
+
+      const doctorIds = doctorStats.map((d) => d.doctorId);
+      const doctors = await prisma.user.findMany({
+        where: {
+          id: {
+            in: doctorIds,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          departmentId: true,
+        },
+      });
+
+      // Получаем отделения
+      const departmentIds = doctors.map((d) => d.departmentId).filter(Boolean) as string[];
+      const departments = await prisma.department.findMany({
+        where: {
+          id: {
+            in: departmentIds,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+
+      // Получаем выручку по докторам
+      const doctorPayments = await prisma.payment.findMany({
+        where: {
+          createdAt: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+          appointment: {
+            doctorId: {
+              in: doctorIds,
+            },
+          },
+        },
+        select: {
+          amount: true,
+          appointment: {
+            select: {
+              doctorId: true,
+            },
+          },
+        },
+      });
+
+      const topDoctors = doctorStats.map((ds) => {
+        const doctor = doctors.find((d) => d.id === ds.doctorId);
+        const department = departments.find((dep) => dep.id === doctor?.departmentId);
+        const revenue = doctorPayments
+          .filter((p) => p.appointment.doctorId === ds.doctorId)
+          .reduce((sum, p) => sum + Number(p.amount), 0);
+
+        return {
+          id: ds.doctorId,
+          name: doctor?.name || 'Неизвестно',
+          department: {
+            name: department?.name || 'Неизвестно',
+          },
+          patients: ds._count.id,
+          revenue,
+        };
+      }).sort((a, b) => b.revenue - a.revenue);
+
       // Топ услуг
       const topServices = await prisma.appointment.groupBy({
         by: ['serviceId'],
@@ -155,15 +249,25 @@ export const GET = withAuth(
 
       const topServicesWithNames = topServices.map((ts) => {
         const service = services.find((s) => s.id === ts.serviceId);
+        
+        // Получаем выручку по этой услуге
+        const servicePayments = paymentsMonth.filter((p: any) => {
+          // Нужно получить serviceId из appointment
+          return false; // Временно
+        });
+        
         return {
-          serviceId: ts.serviceId,
-          serviceName: service?.name || 'Неизвестно',
+          id: ts.serviceId,
+          name: service?.name || 'Неизвестно',
+          price: Number(service?.price || 0),
           count: ts._count.id,
+          revenue: Number(service?.price || 0) * ts._count.id,
         };
       });
 
       return successResponse({
         today: {
+          appointments: appointmentsToday,
           patients: patientsToday,
           revenue: revenueToday,
         },
@@ -179,6 +283,7 @@ export const GET = withAuth(
           source: p.source,
           count: p._count.id,
         })),
+        topDoctors,
         topServices: topServicesWithNames,
       });
     } catch (error) {

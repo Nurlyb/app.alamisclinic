@@ -14,8 +14,7 @@ import {
   Phone,
   Stethoscope,
   CreditCard,
-  AlertCircle,
-  Loader2
+  AlertCircle
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
@@ -79,20 +78,6 @@ export default function SchedulePage() {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('all');
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('all');
   const [selectedTime, setSelectedTime] = useState<string>('');
-
-  // Мутация для отметки прихода (для регистратуры)
-  const markArrivedMutation = useMutation({
-    mutationFn: (id: string) => appointmentsApi.markArrived(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      toast.success('Пациент отмечен как прибывший');
-      setIsDetailsOpen(false);
-      setSelectedAppointment(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Ошибка отметки прихода');
-    },
-  });
 
   // WebSocket подключение
   useSocket(accessToken);
@@ -693,20 +678,11 @@ export default function SchedulePage() {
                       <Button 
                         className="w-full"
                         onClick={() => {
-                          if (selectedAppointment) {
-                            markArrivedMutation.mutate(selectedAppointment.id);
-                          }
+                          setIsDetailsOpen(false);
+                          setIsArrivedOpen(true);
                         }}
-                        disabled={markArrivedMutation.isPending}
                       >
-                        {markArrivedMutation.isPending ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Обработка...
-                          </>
-                        ) : (
-                          'Принять оплату'
-                        )}
+                        Принять оплату
                       </Button>
                       <div className="grid grid-cols-2 gap-2">
                         <Button 

@@ -32,11 +32,17 @@ async function getHandler(request: NextRequest, user: JWTPayload) {
     if (date) {
       // Используем часовой пояс Казахстана (UTC+5)
       const inputDate = new Date(date);
-      const kazakhstanOffset = 5 * 60; // 5 часов в минутах
-      const localDate = new Date(inputDate.getTime() + kazakhstanOffset * 60 * 1000);
+      const kazakhstanOffset = 5 * 60 * 60 * 1000; // 5 часов в миллисекундах
+      const localDate = new Date(inputDate.getTime() + kazakhstanOffset);
       
-      const startOfDay = new Date(localDate.getFullYear(), localDate.getMonth(), localDate.getDate());
-      const endOfDay = new Date(localDate.getFullYear(), localDate.getMonth(), localDate.getDate(), 23, 59, 59, 999);
+      // Получаем дату в формате YYYY-MM-DD для Казахстана
+      const year = localDate.getUTCFullYear();
+      const month = localDate.getUTCMonth();
+      const day = localDate.getUTCDate();
+      
+      // Создаем границы дня в UTC (без смещения)
+      const startOfDay = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+      const endOfDay = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
 
       where.datetime = {
         gte: startOfDay,

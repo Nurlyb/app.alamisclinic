@@ -15,14 +15,20 @@ export const GET = withAuth(
     try {
       // Используем часовой пояс Казахстана (UTC+5)
       const now = new Date();
-      const kazakhstanOffset = 5 * 60; // 5 часов в минутах
-      const localNow = new Date(now.getTime() + kazakhstanOffset * 60 * 1000);
+      const kazakhstanOffset = 5 * 60 * 60 * 1000; // 5 часов в миллисекундах
+      const localNow = new Date(now.getTime() + kazakhstanOffset);
       
-      const startOfToday = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate());
-      const endOfToday = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate(), 23, 59, 59);
+      // Получаем дату в формате YYYY-MM-DD для Казахстана
+      const year = localNow.getUTCFullYear();
+      const month = localNow.getUTCMonth();
+      const date = localNow.getUTCDate();
+      
+      // Создаем границы дня в UTC (без смещения)
+      const startOfToday = new Date(Date.UTC(year, month, date, 0, 0, 0, 0));
+      const endOfToday = new Date(Date.UTC(year, month, date, 23, 59, 59, 999));
 
-      const startOfMonth = new Date(localNow.getFullYear(), localNow.getMonth(), 1);
-      const endOfMonth = new Date(localNow.getFullYear(), localNow.getMonth() + 1, 0, 23, 59, 59);
+      const startOfMonth = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+      const endOfMonth = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
 
       // Записи сегодня
       const appointmentsToday = await prisma.appointment.count({

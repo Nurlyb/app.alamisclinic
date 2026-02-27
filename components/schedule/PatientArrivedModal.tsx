@@ -110,21 +110,21 @@ export function PatientArrivedModal({
       
       let cash = 0;
       let cashless = 0;
-      let method: PaymentMethod = 'CASH';
+      let method: PaymentMethod = PaymentMethod.CASH;
 
       if (data.method === 'CASH') {
         cash = data.amount;
-        method = 'CASH';
+        method = PaymentMethod.CASH;
       } else if (data.method === 'KASPI') {
         cashless = data.amount;
-        method = 'KASPI';
+        method = PaymentMethod.KASPI;
       } else if (data.method === 'CARD') {
         cashless = data.amount;
-        method = 'CARD';
+        method = PaymentMethod.CARD;
       } else if (data.method === 'MIXED') {
         cash = data.cashAmount || 0;
         cashless = data.cardAmount || 0;
-        method = data.cardType || 'KASPI';
+        method = data.cardType === 'KASPI' ? PaymentMethod.KASPI : PaymentMethod.CARD;
       }
       
       return paymentsApi.create({

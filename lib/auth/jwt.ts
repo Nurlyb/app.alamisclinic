@@ -27,7 +27,7 @@ export interface TokenPair {
  * Генерация access токена
  */
 export function generateAccessToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, JWT_SECRET as jwt.Secret, {
     expiresIn: JWT_EXPIRES_IN,
     issuer: 'clinic-management-system',
     audience: 'clinic-api',
@@ -38,7 +38,7 @@ export function generateAccessToken(payload: JWTPayload): string {
  * Генерация refresh токена
  */
 export function generateRefreshToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_REFRESH_SECRET, {
+  return jwt.sign(payload, JWT_REFRESH_SECRET as jwt.Secret, {
     expiresIn: JWT_REFRESH_EXPIRES_IN,
     issuer: 'clinic-management-system',
     audience: 'clinic-api',
@@ -60,7 +60,7 @@ export function generateTokenPair(payload: JWTPayload): TokenPair {
  */
 export function verifyAccessToken(token: string): JWTPayload {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, {
+    const decoded = jwt.verify(token, JWT_SECRET as jwt.Secret, {
       issuer: 'clinic-management-system',
       audience: 'clinic-api',
     }) as JWTPayload;
@@ -81,7 +81,7 @@ export function verifyAccessToken(token: string): JWTPayload {
  */
 export function verifyRefreshToken(token: string): JWTPayload {
   try {
-    const decoded = jwt.verify(token, JWT_REFRESH_SECRET, {
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET as jwt.Secret, {
       issuer: 'clinic-management-system',
       audience: 'clinic-api',
     }) as JWTPayload;

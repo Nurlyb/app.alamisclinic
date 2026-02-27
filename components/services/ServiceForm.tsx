@@ -56,10 +56,17 @@ export function ServiceForm({ service, onSuccess }: ServiceFormProps) {
   // Создание/обновление
   const mutation = useMutation({
     mutationFn: async () => {
+      // Очищаем пустые значения categoryId
+      const cleanedData = {
+        ...formData,
+        categoryId: formData.categoryId || undefined,
+        isActive: true,
+      };
+
       if (service) {
-        return api.put(`/api/services/${service.id}`, formData);
+        return api.put(`/api/services/${service.id}`, cleanedData);
       } else {
-        return api.post('/api/services', { ...formData, isActive: true });
+        return api.post('/api/services', cleanedData);
       }
     },
     onSuccess: () => {

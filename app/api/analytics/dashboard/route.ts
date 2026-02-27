@@ -37,7 +37,7 @@ export const GET = withAuth(
       const appointmentsToday = await prisma.$queryRaw<[{ count: bigint }]>`
         SELECT COUNT(*)::int as count 
         FROM appointments 
-        WHERE DATE(datetime) = ${todayStr}
+        WHERE DATE(datetime) = DATE(${todayStr})
       `;
 
       console.log('Dashboard API - Today:', {

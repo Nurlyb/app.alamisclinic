@@ -42,7 +42,7 @@ async function getHandler(request: NextRequest, user: JWTPayload) {
           user: {
             select: {
               id: true,
-              fullName: true,
+              name: true,
               phone: true,
               role: true,
             },

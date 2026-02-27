@@ -26,7 +26,7 @@ interface AuditLog {
   createdAt: string;
   user: {
     id: string;
-    fullName: string;
+    name: string;
     phone: string;
     role: string;
   };
@@ -187,7 +187,7 @@ export default function AuditPage() {
                       {formatDateTime(log.createdAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm font-medium">{log.user.fullName}</div>
+                      <div className="text-sm font-medium">{log.user.name}</div>
                       <div className="text-xs text-gray-500">{log.user.phone}</div>
                     </td>
                     <td className="px-4 py-3">

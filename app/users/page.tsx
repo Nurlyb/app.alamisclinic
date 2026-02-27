@@ -106,7 +106,7 @@ export default function UsersPage() {
     return colors[role] || 'bg-gray-100 text-gray-800';
   };
 
-  const getDepartmentName = (departmentId: string | null) => {
+  const getDepartmentName = (departmentId: string | null | undefined) => {
     if (!departmentId) return '-';
     const dept = departments.find((d) => d.id === departmentId);
     return dept?.name || '-';

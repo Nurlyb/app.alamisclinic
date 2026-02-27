@@ -57,10 +57,13 @@ export const GET = withAuth(
 
       // Фильтр по дате
       if (date) {
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+        // Используем часовой пояс Казахстана (UTC+5)
+        const inputDate = new Date(date);
+        const kazakhstanOffset = 5 * 60; // 5 часов в минутах
+        const localDate = new Date(inputDate.getTime() + kazakhstanOffset * 60 * 1000);
+        
+        const startOfDay = new Date(localDate.getFullYear(), localDate.getMonth(), localDate.getDate());
+        const endOfDay = new Date(localDate.getFullYear(), localDate.getMonth(), localDate.getDate(), 23, 59, 59, 999);
 
         where.datetime = {
           gte: startOfDay,

@@ -51,6 +51,7 @@ import { PatientArrivedModal } from '@/components/schedule/PatientArrivedModal';
 import { CancelAppointmentForm } from '@/components/schedule/CancelAppointmentForm';
 import { RescheduleAppointmentForm } from '@/components/schedule/RescheduleAppointmentForm';
 import { AppointmentStats } from '@/components/schedule/AppointmentStats';
+import { MedicalRecordForm } from '@/components/schedule/MedicalRecordForm';
 import { appointmentsApi } from '@/api/appointments.api';
 import type { Appointment, AppointmentStatus, Department, User as UserType } from '@/types';
 import toast from 'react-hot-toast';
@@ -74,6 +75,7 @@ export default function SchedulePage() {
   const [isArrivedOpen, setIsArrivedOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isMedicalRecordOpen, setIsMedicalRecordOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('all');
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('all');
@@ -708,6 +710,19 @@ export default function SchedulePage() {
                     </>
                   )}
 
+                  {/* Кнопки для доктора - записать диагноз */}
+                  {user?.role === 'DOCTOR' && selectedAppointment.doctorId === user?.id && selectedAppointment.status === 'ARRIVED' && !isPastTime && (
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        setIsDetailsOpen(false);
+                        setIsMedicalRecordOpen(true);
+                      }}
+                    >
+                      📝 Записать диагноз
+                    </Button>
+                  )}
+
                   {/* Кнопки для других ролей */}
                   {user?.role !== 'RECEPTIONIST' && !isPastTime && (
                     <>
@@ -897,6 +912,28 @@ export default function SchedulePage() {
               onSuccess={() => {
                 setIsRescheduleOpen(false);
                 setSelectedAppointment(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Medical Record Modal */}
+      <Dialog open={isMedicalRecordOpen} onOpenChange={setIsMedicalRecordOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Медицинская карта</DialogTitle>
+            <SheetDescription>
+              Запись диагноза и рекомендаций для пациента
+            </SheetDescription>
+          </DialogHeader>
+          {selectedAppointment && (
+            <MedicalRecordForm
+              appointment={selectedAppointment}
+              onSuccess={() => {
+                setIsMedicalRecordOpen(false);
+                setSelectedAppointment(null);
+                toast.success('Медицинская запись сохранена');
               }}
             />
           )}

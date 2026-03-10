@@ -307,3 +307,13 @@ export type Permission =
   | 'manage:users'
   | 'manage:services'
   | 'view:audit_log';
+
+// Doctor Service (связь доктора с услугой и кастомной ценой)
+export interface DoctorService {
+  id: string;
+  doctorId: string;
+  serviceId: string;
+  service: Service;
+  customPrice?: number;
+  createdAt: string;
+}

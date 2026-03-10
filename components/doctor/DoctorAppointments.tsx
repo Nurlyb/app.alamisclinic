@@ -48,7 +48,7 @@ export function DoctorAppointments() {
         ? user.assistingDoctorId 
         : user?.id;
 
-      const response = await apiClient.get(`/api/appointments?doctorId=${doctorId}&status=ARRIVED,CONFIRMED`);
+      const response = await apiClient.get(`/api/appointments?doctorId=${doctorId}&status=ARRIVED,CONFIRMED`) as { success?: boolean; data?: any };
       if (response.success) {
         setAppointments(response.data);
       }

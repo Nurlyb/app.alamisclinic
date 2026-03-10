@@ -85,7 +85,7 @@ export function AssignOperationForm({
   const { data: services = [] } = useQuery({
     queryKey: ['doctor-services'],
     queryFn: async () => {
-      const response = await api.get('/api/doctor-services');
+      const response = await api.get('/api/doctor-services') as { data?: { services?: any[] } };
       return response.data?.services || [];
     },
   });

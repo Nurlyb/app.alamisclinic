@@ -26,9 +26,9 @@ export function DoctorServices() {
         ? user.assistingDoctorId 
         : user?.id;
 
-      const response = await apiClient.get(`/api/doctor-services?doctorId=${doctorId}`);
+      const response = await apiClient.get(`/api/doctor-services?doctorId=${doctorId}`) as { success?: boolean; data?: DoctorService[] };
       if (response.success) {
-        setServices(response.data);
+        setServices(response.data || []);
       }
     } catch (error) {
       console.error('Error loading services:', error);
@@ -43,7 +43,7 @@ export function DoctorServices() {
     }
 
     try {
-      const response = await apiClient.delete(`/api/doctor-services/${id}`);
+      const response = await apiClient.delete(`/api/doctor-services/${id}`) as { success?: boolean };
       if (response.success) {
         loadServices();
       }

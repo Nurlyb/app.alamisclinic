@@ -82,5 +82,5 @@ export const PUT = withAuth(
       return internalErrorResponse(error);
     }
   },
-  'users:update'
+  'users:manage'
 );

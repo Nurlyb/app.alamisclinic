@@ -19,6 +19,7 @@ const statusColors = {
   DONE: 'bg-gray-100 text-gray-800',
   CANCELLED: 'bg-red-100 text-red-800',
   NO_SHOW: 'bg-orange-100 text-orange-800',
+  TRANSFERRED: 'bg-purple-100 text-purple-800',
 };
 
 const statusLabels = {
@@ -28,6 +29,7 @@ const statusLabels = {
   DONE: 'Выполнено',
   CANCELLED: 'Отменено',
   NO_SHOW: 'Не пришёл',
+  TRANSFERRED: 'Переведён',
 };
 
 export function DoctorAppointments() {

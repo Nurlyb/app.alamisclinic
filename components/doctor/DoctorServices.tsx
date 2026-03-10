@@ -60,7 +60,7 @@ export function DoctorServices() {
   if (services.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        У вас пока нет добавленных услуг. Нажмите "Добавить услугу" чтобы создать первую.
+        У вас пока нет добавленных услуг. Нажмите &quot;Добавить услугу&quot; чтобы создать первую.
       </div>
     );
   }

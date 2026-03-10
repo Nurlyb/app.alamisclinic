@@ -46,11 +46,19 @@ export function DoctorAppointments() {
   const loadAppointments = async () => {
     try {
       setLoading(true);
-      const doctorId = user?.role === 'ASSISTANT' && user.assistingDoctorId 
-        ? user.assistingDoctorId 
-        : user?.id;
+      
+      // Для ассистента без привязки - показываем все записи
+      // Для ассистента с привязкой или доктора - только свои
+      const params = new URLSearchParams({ status: 'ARRIVED,CONFIRMED' });
+      
+      if (user?.role === 'DOCTOR') {
+        params.append('doctorId', user.id);
+      } else if (user?.role === 'ASSISTANT' && user.assistingDoctorId) {
+        params.append('doctorId', user.assistingDoctorId);
+      }
+      // Если ассистент без привязки - не добавляем doctorId, показываем все
 
-      const response = await apiClient.get(`/api/appointments?doctorId=${doctorId}&status=ARRIVED,CONFIRMED`) as { success?: boolean; data?: any };
+      const response = await apiClient.get(`/api/appointments?${params.toString()}`) as { success?: boolean; data?: any };
       if (response.success) {
         setAppointments(response.data);
       }

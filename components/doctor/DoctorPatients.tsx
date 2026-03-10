@@ -28,12 +28,20 @@ export function DoctorPatients() {
   const loadPatients = async () => {
     try {
       setLoading(true);
-      const doctorId = user?.role === 'ASSISTANT' && user.assistingDoctorId 
-        ? user.assistingDoctorId 
-        : user?.id;
+      
+      // Для ассистента без привязки - показываем всех пациентов
+      // Для ассистента с привязкой или доктора - только своих
+      const params = new URLSearchParams();
+      
+      if (user?.role === 'DOCTOR') {
+        params.append('doctorId', user.id);
+      } else if (user?.role === 'ASSISTANT' && user.assistingDoctorId) {
+        params.append('doctorId', user.assistingDoctorId);
+      }
+      // Если ассистент без привязки - не добавляем doctorId, показываем всех
 
       // Получаем пациентов через записи доктора
-      const response = await apiClient.get(`/api/appointments?doctorId=${doctorId}`) as { success?: boolean; data?: any };
+      const response = await apiClient.get(`/api/appointments?${params.toString()}`) as { success?: boolean; data?: any };
       if (response.success) {
         // Извлекаем уникальных пациентов
         const uniquePatients = Array.from(
@@ -52,12 +60,17 @@ export function DoctorPatients() {
 
   const loadPatientAppointments = async (patientId: string) => {
     try {
-      const doctorId = user?.role === 'ASSISTANT' && user.assistingDoctorId 
-        ? user.assistingDoctorId 
-        : user?.id;
+      const params = new URLSearchParams({ patientId });
+      
+      if (user?.role === 'DOCTOR') {
+        params.append('doctorId', user.id);
+      } else if (user?.role === 'ASSISTANT' && user.assistingDoctorId) {
+        params.append('doctorId', user.assistingDoctorId);
+      }
+      // Если ассистент без привязки - не добавляем doctorId, показываем все записи пациента
 
       const response = await apiClient.get(
-        `/api/appointments?doctorId=${doctorId}&patientId=${patientId}`
+        `/api/appointments?${params.toString()}`
       ) as { success?: boolean; data?: Appointment[] };
       if (response.success) {
         setPatientAppointments(response.data || []);

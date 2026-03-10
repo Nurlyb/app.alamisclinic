@@ -18,6 +18,7 @@ import {
 const createAssignmentSchema = z.object({
   patientId: z.string().uuid(),
   serviceId: z.string().uuid(),
+  doctorId: z.string().uuid().optional(), // Для ассистентов без привязки
   price: z.number().positive('Цена должна быть положительной'),
   notes: z.string().optional(),
   scheduledDate: z.string().optional(),
@@ -37,7 +38,8 @@ export const GET = withAuth(
         where.doctorId = user.userId;
       }
 
-      // Ассистент видит назначения своего доктора
+      // Ассистент видит назначения своего доктора (если привязан)
+      // Если не привязан - видит все назначения
       if (user.role === 'ASSISTANT') {
         const assistant = await prisma.user.findUnique({
           where: { id: user.userId },
@@ -47,6 +49,7 @@ export const GET = withAuth(
         if (assistant?.assistingDoctorId) {
           where.doctorId = assistant.assistingDoctorId;
         }
+        // Если assistingDoctorId === null, не добавляем фильтр - показываем все
       }
 
       // Фильтр по пациенту
@@ -113,22 +116,28 @@ export const POST = withAuth(
       // Определяем ID доктора
       let doctorId = user.userId;
 
-      // Если это ассистент, берем ID его доктора
+      // Если это ассистент, берем ID его доктора (если привязан)
       if (user.role === 'ASSISTANT') {
         const assistant = await prisma.user.findUnique({
           where: { id: user.userId },
           select: { assistingDoctorId: true },
         });
 
-        if (!assistant?.assistingDoctorId) {
-          return errorResponse(
-            'Ассистент не привязан к доктору',
-            'ASSISTANT_NO_DOCTOR',
-            400
-          );
+        // Если ассистент привязан к доктору - используем его ID
+        if (assistant?.assistingDoctorId) {
+          doctorId = assistant.assistingDoctorId;
+        } else {
+          // Если не привязан - требуем указать doctorId в запросе
+          const requestDoctorId = body.doctorId;
+          if (!requestDoctorId) {
+            return errorResponse(
+              'Необходимо указать доктора для назначения',
+              'DOCTOR_ID_REQUIRED',
+              400
+            );
+          }
+          doctorId = requestDoctorId;
         }
-
-        doctorId = assistant.assistingDoctorId;
       }
 
       // Создаем назначение

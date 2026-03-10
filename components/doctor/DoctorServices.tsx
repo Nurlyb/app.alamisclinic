@@ -22,11 +22,19 @@ export function DoctorServices() {
   const loadServices = async () => {
     try {
       setLoading(true);
-      const doctorId = user?.role === 'ASSISTANT' && user.assistingDoctorId 
-        ? user.assistingDoctorId 
-        : user?.id;
+      
+      // Для ассистента без привязки - показываем все услуги
+      // Для ассистента с привязкой или доктора - только свои
+      const params = new URLSearchParams();
+      
+      if (user?.role === 'DOCTOR') {
+        params.append('doctorId', user.id);
+      } else if (user?.role === 'ASSISTANT' && user.assistingDoctorId) {
+        params.append('doctorId', user.assistingDoctorId);
+      }
+      // Если ассистент без привязки - не добавляем doctorId, показываем все
 
-      const response = await apiClient.get(`/api/doctor-services?doctorId=${doctorId}`) as { success?: boolean; data?: DoctorService[] };
+      const response = await apiClient.get(`/api/doctor-services?${params.toString()}`) as { success?: boolean; data?: DoctorService[] };
       if (response.success) {
         setServices(response.data || []);
       }

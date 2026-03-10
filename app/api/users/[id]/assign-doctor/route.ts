@@ -7,6 +7,7 @@ import { NextRequest } from 'next/server';
 import { withAuth } from '@/lib/auth/middleware';
 import { prisma } from '@/lib/db/prisma';
 import { z } from 'zod';
+import { extractIdFromUrl } from '@/lib/utils/url';
 import {
   successResponse,
   validationErrorResponse,
@@ -19,9 +20,9 @@ const assignDoctorSchema = z.object({
 });
 
 export const PUT = withAuth(
-  async (request, user, { params }) => {
+  async (request, user) => {
     try {
-      const { id } = params;
+      const id = extractIdFromUrl(request.url, 2);
       const body = await request.json();
       const validation = assignDoctorSchema.safeParse(body);
 

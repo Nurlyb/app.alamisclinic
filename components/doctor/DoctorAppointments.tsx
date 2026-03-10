@@ -96,11 +96,11 @@ export function DoctorAppointments() {
                     </Badge>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4" />
-                      {format(new Date(appointment.datetime), 'dd MMMM yyyy', { locale: ru })}
+                      {format(new Date(appointment.date), 'dd MMMM yyyy', { locale: ru })}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      {format(new Date(appointment.datetime), 'HH:mm')}
+                      {appointment.time}
                     </div>
                   </div>
 

@@ -164,15 +164,8 @@ export function PatientArrivedModal({
     if (!appointment) return;
 
     try {
-      // 1. Отметить приход и сохранить примечания регистратора
+      // 1. Отметить приход
       await arriveMutation.mutateAsync(appointment.id);
-      
-      // Если есть примечания, обновляем запись
-      if (data.receptionistNotes) {
-        await appointmentsApi.update(appointment.id, {
-          receptionistNotes: data.receptionistNotes,
-        });
-      }
       
       // 2. Создать платёж
       await paymentMutation.mutateAsync(data);

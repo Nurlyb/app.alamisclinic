@@ -42,9 +42,9 @@ export function DoctorServiceForm({ service, onClose, onSuccess }: DoctorService
 
   const loadServices = async () => {
     try {
-      const response = await apiClient.get('/api/services?isActive=true');
+      const response = await apiClient.get('/api/services?isActive=true') as { success?: boolean; data?: Service[] };
       if (response.success) {
-        setServices(response.data);
+        setServices(response.data || []);
       }
     } catch (error) {
       console.error('Error loading services:', error);

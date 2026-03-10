@@ -142,10 +142,6 @@ export function DoctorAppointments() {
       {showMedicalForm && selectedAppointment && (
         <MedicalRecordForm
           appointment={selectedAppointment}
-          onClose={() => {
-            setShowMedicalForm(false);
-            setSelectedAppointment(null);
-          }}
           onSuccess={() => {
             setShowMedicalForm(false);
             setSelectedAppointment(null);

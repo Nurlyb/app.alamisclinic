@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,6 @@ import { DoctorServiceForm } from '@/components/doctor/DoctorServiceForm';
 
 export default function DoctorPage() {
   const { user } = useAuth();
-  const { hasPermission } = usePermissions();
   const [showServiceForm, setShowServiceForm] = useState(false);
 
   if (!user || (user.role !== 'DOCTOR' && user.role !== 'ASSISTANT')) {

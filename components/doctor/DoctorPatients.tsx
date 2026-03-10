@@ -33,7 +33,7 @@ export function DoctorPatients() {
         : user?.id;
 
       // Получаем пациентов через записи доктора
-      const response = await apiClient.get(`/api/appointments?doctorId=${doctorId}`);
+      const response = await apiClient.get(`/api/appointments?doctorId=${doctorId}`) as { success?: boolean; data?: any };
       if (response.success) {
         // Извлекаем уникальных пациентов
         const uniquePatients = Array.from(

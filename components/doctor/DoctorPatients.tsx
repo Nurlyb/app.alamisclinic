@@ -58,9 +58,9 @@ export function DoctorPatients() {
 
       const response = await apiClient.get(
         `/api/appointments?doctorId=${doctorId}&patientId=${patientId}`
-      );
+      ) as { success?: boolean; data?: Appointment[] };
       if (response.success) {
-        setPatientAppointments(response.data);
+        setPatientAppointments(response.data || []);
       }
     } catch (error) {
       console.error('Error loading patient appointments:', error);
@@ -170,7 +170,7 @@ export function DoctorPatients() {
                           </Badge>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            {new Date(appointment.datetime).toLocaleDateString('ru-RU')}
+                            {new Date(appointment.date).toLocaleDateString('ru-RU')} {appointment.time}
                           </div>
                         </div>
                         <div className="text-sm">
@@ -202,10 +202,6 @@ export function DoctorPatients() {
       {showMedicalForm && selectedAppointment && (
         <MedicalRecordForm
           appointment={selectedAppointment}
-          onClose={() => {
-            setShowMedicalForm(false);
-            setSelectedAppointment(null);
-          }}
           onSuccess={() => {
             setShowMedicalForm(false);
             setSelectedAppointment(null);

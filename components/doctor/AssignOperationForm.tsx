@@ -75,7 +75,7 @@ export function AssignOperationForm({
       if (!selectedDate) return [];
       const response = await api.get(
         `/api/doctor-service-assignments/calendar?date=${selectedDate}`
-      );
+      ) as { data?: any[] };
       return response.data?.map((item: any) => item.time) || [];
     },
     enabled: !!selectedDate,

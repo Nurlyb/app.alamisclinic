@@ -113,30 +113,35 @@ enum FileType {
 
 /// Пользователи системы (операторы, ресепшн, ассистенты, доктора, владелец)
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  role         Role
-  departmentId String?
-  colorBadge   String   // Цвет бейджа для отображения в расписании
-  phone        String?
-  passwordHash String
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id                String   @id @default(uuid())
+  name              String
+  role              Role
+  departmentId      String?
+  assistingDoctorId String?  // Для ассистентов - ID доктора, которого ассистируют
+  colorBadge        String   // Цвет бейджа для отображения в расписании
+  phone             String?
+  passwordHash      String
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
 
   // Relations
   salaryScheme        SalaryScheme?
-  appointments        Appointment[]    @relation("DoctorAppointments")
-  managedAppts        Appointment[]    @relation("ManagerAppointments")
+  appointments        Appointment[]         @relation("DoctorAppointments")
+  managedAppts        Appointment[]         @relation("ManagerAppointments")
   notifications       Notification[]
   auditLogs           AuditLog[]
   templates           RecordTemplate[]
   salaryAccruals      SalaryAccrual[]
   salaryPayments      SalaryPayment[]
-  directionsFrom      Direction[]      @relation("DirectionFromDoctor")
-  directionsTo        Direction[]      @relation("DirectionToDoctor")
+  directionsFrom      Direction[]           @relation("DirectionFromDoctor")
+  directionsTo        Direction[]           @relation("DirectionToDoctor")
+  assistingDoctor     User?                 @relation("AssistantToDoctor", fields: [assistingDoctorId], references: [id])
+  assistants          User[]                @relation("AssistantToDoctor")
+  doctorServices      DoctorService[]       // Услуги доктора (операции)
 
   @@index([role])
   @@index([departmentId])
+  @@index([assistingDoctorId])
   @@map("users")
 }
 
@@ -157,10 +162,11 @@ model Patient {
   createdAt       DateTime @default(now())
 
   // Relations
-  appointments   Appointment[]
-  files          PatientFile[]
-  medicalRecords MedicalRecord[]
-  directions     Direction[]
+  appointments          Appointment[]
+  files                 PatientFile[]
+  medicalRecords        MedicalRecord[]
+  directions            Direction[]
+  doctorServiceAssignments DoctorServiceAssignment[] // Назначенные операции
 
   @@index([iin])
   @@index([phone])
@@ -234,6 +240,7 @@ model Appointment {
   status        AppointmentStatus @default(PENDING)
   type          VisitType         // Первичный / Повторный
   comment       String?
+  receptionistNotes String?       // Примечания регистратора (опоздал, оплатил не вовремя и т.д.)
   managerId     String            // Кто создал запись (оператор)
   cancelledBy   String?           // Кто отменил запись
   cancelledAt   DateTime?         // Когда отменили
@@ -256,7 +263,7 @@ model Appointment {
   department    Department     @relation(fields: [departmentId], references: [id])
   direction     Direction?
   payment       Payment?
-  medicalRecord MedicalRecord?
+  medicalRecords MedicalRecord[] // Изменили на множественное число - теперь может быть несколько записей
 
   @@index([patientId])
   @@index([doctorId])
@@ -345,7 +352,7 @@ model Refund {
 model MedicalRecord {
   id            String    @id @default(uuid())
   patientId     String
-  appointmentId String    @unique
+  appointmentId String    // Убрали @unique чтобы можно было создавать несколько записей для одной записи на прием
   doctorId      String
   diagnosis     String?
   icd10         String?   // Код МКБ-10
@@ -362,6 +369,7 @@ model MedicalRecord {
 
   @@index([patientId])
   @@index([doctorId])
+  @@index([appointmentId])
   @@map("medical_records")
 }
 
@@ -506,4 +514,47 @@ model AuditLog {
   @@index([tableName, recordId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+/// Услуги докторов (операции) - создаются владельцем
+model DoctorService {
+  id          String   @id @default(uuid())
+  name        String   // Название операции
+  description String?  // Описание операции
+  createdBy   String   // ID владельца, который создал
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  creator     User                      @relation(fields: [createdBy], references: [id])
+  assignments DoctorServiceAssignment[] // Назначения операций пациентам
+
+  @@index([isActive])
+  @@map("doctor_services")
+}
+
+/// Назначенные операции пациентам (доктор назначает и ставит цену)
+model DoctorServiceAssignment {
+  id               String    @id @default(uuid())
+  patientId        String
+  doctorId         String    // Доктор, который назначил
+  serviceId        String    // ID услуги доктора
+  appointmentId    String?   // Связь с записью (если есть)
+  price            Decimal   @db.Decimal(10, 2) // Цена, которую поставил доктор
+  notes            String?   // Примечания доктора
+  status           String    @default("PLANNED") // PLANNED, COMPLETED, CANCELLED
+  scheduledDate    DateTime? // Планируемая дата операции
+  completedDate    DateTime? // Дата выполнения
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  patient Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  service DoctorService @relation(fields: [serviceId], references: [id])
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([serviceId])
+  @@index([status])
+  @@map("doctor_service_assignments")
 }

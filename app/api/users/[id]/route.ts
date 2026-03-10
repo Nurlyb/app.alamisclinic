@@ -24,6 +24,19 @@ async function getHandler(request: NextRequest, user: JWTPayload) {
   try {
     const id = extractIdFromUrl(request.url);
 
+    // Пользователь может получить свою собственную информацию
+    // Владелец может получить информацию о любом пользователе
+    // Ассистенты и доктора могут получить свою информацию (для загрузки assistingDoctorId)
+    const canAccess = 
+      user.userId === id || // Свой профиль
+      user.role === 'OWNER' || // Владелец видит всех
+      (user.role === 'ASSISTANT' && user.userId === id) || // Ассистент видит свой профиль
+      (user.role === 'DOCTOR' && user.userId === id); // Доктор видит свой профиль
+    
+    if (!canAccess) {
+      return errorResponse('Нет доступа', 'FORBIDDEN', 403);
+    }
+
     const foundUser = await prisma.user.findUnique({
       where: { id },
       select: {
@@ -31,6 +44,7 @@ async function getHandler(request: NextRequest, user: JWTPayload) {
         name: true,
         role: true,
         departmentId: true,
+        assistingDoctorId: true, // Добавлено для ассистентов
         colorBadge: true,
         phone: true,
         isActive: true,
@@ -48,7 +62,7 @@ async function getHandler(request: NextRequest, user: JWTPayload) {
   }
 }
 
-export const GET = withAuth(getHandler, 'users:manage');
+export const GET = withAuth(getHandler, ['users:manage', 'appointments:view:own', 'appointments:view:all']);
 
 // PUT - Обновление пользователя
 async function putHandler(request: NextRequest, user: JWTPayload) {

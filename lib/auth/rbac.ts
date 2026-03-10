@@ -95,12 +95,20 @@ const rolePermissions: Record<Role, Permission[]> = {
 
   ASSISTANT: [
     'appointments:view:own',
+    'appointments:view:all', // Добавлено для просмотра записей своего доктора
+    'appointments:create',
+    'appointments:update',
     'patients:view',
+    'patients:update', // Добавлено для редактирования данных пациента
     'patients:files:upload',
     'patients:files:view',
     'medical:view:own',
     'medical:vitals',
     'notifications:view',
+    'directions:view:own',
+    'directions:create',
+    'payments:view:own',
+    'salary:view:own',
   ],
 
   DOCTOR: [
@@ -108,6 +116,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     'appointments:create',
     'appointments:update',
     'patients:view',
+    'patients:update', // Добавлено для редактирования данных пациента
     'patients:files:view',
     'directions:view:own',
     'directions:create',

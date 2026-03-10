@@ -271,6 +271,14 @@ async function main() {
 
   console.log('✅ Доктора созданы');
 
+  // Привязываем ассистента к доктору
+  await prisma.user.update({
+    where: { id: assistant1.id },
+    data: { assistingDoctorId: doctor1.id },
+  });
+
+  console.log('✅ Ассистент привязан к доктору');
+
   // 6. Создание схем зарплат для докторов
   await prisma.salaryScheme.createMany({
     data: [

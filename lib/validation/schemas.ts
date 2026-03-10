@@ -28,7 +28,15 @@ export const createPatientSchema = z.object({
   source: z.nativeEnum(Source, { errorMap: () => ({ message: 'Некорректный источник' }) }),
 });
 
-export const updatePatientSchema = createPatientSchema.partial();
+export const updatePatientSchema = z.object({
+  fullName: z.string().min(2, 'ФИО должно содержать минимум 2 символа').optional(),
+  iin: z.string().length(12, 'ИИН должен содержать 12 цифр').regex(/^\d+$/, 'ИИН должен содержать только цифры').optional(),
+  dob: z.string().optional(),
+  gender: z.nativeEnum(Gender, { errorMap: () => ({ message: 'Некорректный пол' }) }).optional(),
+  phone: z.string().min(10, 'Некорректный номер телефона').optional(),
+  address: z.string().optional(),
+  source: z.nativeEnum(Source, { errorMap: () => ({ message: 'Некорректный источник' }) }).optional(),
+});
 
 export const blacklistPatientSchema = z.object({
   blacklist: z.boolean(),

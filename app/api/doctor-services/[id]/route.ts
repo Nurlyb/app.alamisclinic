@@ -1,127 +1,82 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { verifyAuth } from '@/lib/auth/jwt';
-import { hasPermission } from '@/lib/auth/rbac';
-import { logAudit } from '@/lib/audit/logger';
+/**
+ * API для конкретной услуги доктора
+ * PUT - обновить услугу (только владелец)
+ * DELETE - удалить услугу (только владелец)
+ */
 
-const prisma = new PrismaClient();
+import { NextRequest } from 'next/server';
+import { withAuth } from '@/lib/auth/middleware';
+import { prisma } from '@/lib/db/prisma';
+import { z } from 'zod';
+import {
+  successResponse,
+  validationErrorResponse,
+  errorResponse,
+  internalErrorResponse,
+} from '@/lib/utils/response';
 
-// PATCH /api/doctor-services/[id] - Обновить услугу доктора
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const user = await verifyAuth(req);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const updateDoctorServiceSchema = z.object({
+  name: z.string().min(1, 'Название обязательно').optional(),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+// PUT - обновить услугу
+export const PUT = withAuth(
+  async (request, user, { params }) => {
+    try {
+      const { id } = params;
+      const body = await request.json();
+      const validation = updateDoctorServiceSchema.safeParse(body);
+
+      if (!validation.success) {
+        return validationErrorResponse(validation.error);
+      }
+
+      const service = await prisma.doctorService.findUnique({
+        where: { id },
+      });
+
+      if (!service) {
+        return errorResponse('Услуга не найдена', 'SERVICE_NOT_FOUND', 404);
+      }
+
+      const updated = await prisma.doctorService.update({
+        where: { id },
+        data: validation.data,
+      });
+
+      return successResponse({ service: updated });
+    } catch (error) {
+      return internalErrorResponse(error);
     }
+  },
+  'services:manage'
+);
 
-    const { id } = params;
-    const body = await req.json();
+// DELETE - удалить услугу (мягкое удаление)
+export const DELETE = withAuth(
+  async (request, user, { params }) => {
+    try {
+      const { id } = params;
 
-    const existing = await prisma.doctorService.findUnique({
-      where: { id },
-    });
+      const service = await prisma.doctorService.findUnique({
+        where: { id },
+      });
 
-    if (!existing) {
-      return NextResponse.json({ error: 'Doctor service not found' }, { status: 404 });
+      if (!service) {
+        return errorResponse('Услуга не найдена', 'SERVICE_NOT_FOUND', 404);
+      }
+
+      await prisma.doctorService.update({
+        where: { id },
+        data: { isActive: false },
+      });
+
+      return successResponse({ message: 'Услуга удалена' });
+    } catch (error) {
+      return internalErrorResponse(error);
     }
-
-    // Проверка прав: доктор может редактировать только свои услуги
-    if (
-      user.role === 'DOCTOR' &&
-      existing.doctorId !== user.id &&
-      !hasPermission(user.role, 'services:manage')
-    ) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const updated = await prisma.doctorService.update({
-      where: { id },
-      data: {
-        customPrice: body.customPrice ? parseFloat(body.customPrice) : null,
-        isActive: body.isActive !== undefined ? body.isActive : existing.isActive,
-      },
-      include: {
-        service: {
-          include: {
-            category: true,
-            department: true,
-          },
-        },
-      },
-    });
-
-    await logAudit({
-      userId: user.id,
-      action: 'UPDATE',
-      tableName: 'doctor_services',
-      recordId: id,
-      oldValue: existing,
-      newValue: updated,
-      ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
-    });
-
-    return NextResponse.json({ success: true, data: updated });
-  } catch (error) {
-    console.error('Error updating doctor service:', error);
-    return NextResponse.json(
-      { error: 'Failed to update doctor service' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/doctor-services/[id] - Удалить услугу доктора
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const user = await verifyAuth(req);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { id } = params;
-
-    const existing = await prisma.doctorService.findUnique({
-      where: { id },
-    });
-
-    if (!existing) {
-      return NextResponse.json({ error: 'Doctor service not found' }, { status: 404 });
-    }
-
-    // Проверка прав
-    if (
-      user.role === 'DOCTOR' &&
-      existing.doctorId !== user.id &&
-      !hasPermission(user.role, 'services:manage')
-    ) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    await prisma.doctorService.delete({
-      where: { id },
-    });
-
-    await logAudit({
-      userId: user.id,
-      action: 'DELETE',
-      tableName: 'doctor_services',
-      recordId: id,
-      oldValue: existing,
-      ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting doctor service:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete doctor service' },
-      { status: 500 }
-    );
-  }
-}
+  },
+  'services:manage'
+);

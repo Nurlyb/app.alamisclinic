@@ -96,10 +96,11 @@ export const PUT = withAuth(
         where: { id },
         data: {
           ...(data.fullName && { fullName: data.fullName }),
+          ...(data.iin !== undefined && { iin: data.iin || null }),
           ...(data.dob && { dob: new Date(data.dob) }),
-          ...(data.gender && { gender: data.gender }),
+          ...(data.gender !== undefined && { gender: data.gender || null }),
           ...(data.phone && { phone: data.phone }),
-          ...(data.address !== undefined && { address: data.address }),
+          ...(data.address !== undefined && { address: data.address || null }),
           ...(data.source && { source: data.source }),
         },
       });

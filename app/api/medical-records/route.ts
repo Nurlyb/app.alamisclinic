@@ -1,5 +1,6 @@
 /**
  * POST /api/medical-records - Создание медицинской записи (для доктора)
+ * GET /api/medical-records - Получение медицинских записей пациента
  */
 
 import { NextRequest } from 'next/server';
@@ -18,6 +19,35 @@ const createMedicalRecordSchema = z.object({
   diagnosis: z.string().optional(),
   notes: z.string().optional(),
 });
+
+// GET - получить медицинские записи пациента
+export const GET = withAuth(
+  async (request, user) => {
+    try {
+      const { searchParams } = new URL(request.url);
+      const patientId = searchParams.get('patientId');
+
+      if (!patientId) {
+        return errorResponse('patientId обязателен', 'PATIENT_ID_REQUIRED', 400);
+      }
+
+      // Получаем записи пациента
+      const records = await prisma.medicalRecord.findMany({
+        where: {
+          patientId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      return successResponse({ records });
+    } catch (error) {
+      return internalErrorResponse(error);
+    }
+  },
+  ['appointments:view:all', 'appointments:view:own']
+);
 
 export const POST = withAuth(
   async (request, user) => {
@@ -48,28 +78,8 @@ export const POST = withAuth(
         return errorResponse('Нет доступа к этой записи', 'FORBIDDEN', 403);
       }
 
-      // Проверка, что медицинская запись еще не создана
-      const existingRecord = await prisma.medicalRecord.findUnique({
-        where: { appointmentId },
-      });
-
-      if (existingRecord) {
-        // Обновляем существующую запись
-        const updatedRecord = await prisma.medicalRecord.update({
-          where: { appointmentId },
-          data: {
-            diagnosis,
-            notes,
-          },
-        });
-
-        return successResponse({
-          record: updatedRecord,
-          message: 'Медицинская запись обновлена',
-        });
-      }
-
-      // Создание новой медицинской записи
+      // Всегда создаем новую медицинскую запись (история диагнозов)
+      // Убираем проверку на существующую запись - каждый диагноз это новая запись
       const medicalRecord = await prisma.medicalRecord.create({
         data: {
           appointmentId,
@@ -83,7 +93,7 @@ export const POST = withAuth(
       return successResponse(
         {
           record: medicalRecord,
-          message: 'Медицинская запись создана',
+          message: 'Диагноз добавлен в историю',
         },
         201
       );

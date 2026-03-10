@@ -44,6 +44,7 @@ const paymentSchema = z.object({
   cashAmount: z.number().min(0).optional(),
   cardAmount: z.number().min(0).optional(),
   cardType: z.enum(['KASPI', 'CARD'] as const).optional(),
+  receptionistNotes: z.string().optional(), // Примечания регистратора
 }).refine((data) => {
   if (data.method === 'MIXED') {
     const cash = data.cashAmount || 0;
@@ -88,6 +89,7 @@ export function PatientArrivedModal({
       cashAmount: 0,
       cardAmount: 0,
       cardType: 'KASPI',
+      receptionistNotes: '',
     },
   });
 
@@ -162,8 +164,15 @@ export function PatientArrivedModal({
     if (!appointment) return;
 
     try {
-      // 1. Отметить приход
+      // 1. Отметить приход и сохранить примечания регистратора
       await arriveMutation.mutateAsync(appointment.id);
+      
+      // Если есть примечания, обновляем запись
+      if (data.receptionistNotes) {
+        await appointmentsApi.update(appointment.id, {
+          receptionistNotes: data.receptionistNotes,
+        });
+      }
       
       // 2. Создать платёж
       await paymentMutation.mutateAsync(data);
@@ -407,6 +416,19 @@ export function PatientArrivedModal({
             {errors.cashAmount && (
               <p className="text-xs text-red-600">{errors.cashAmount.message}</p>
             )}
+
+            {/* Receptionist Notes */}
+            <div>
+              <Label className="text-sm">Примечания (опционально)</Label>
+              <textarea
+                {...register('receptionistNotes')}
+                placeholder="Например: опоздал на 15 минут, оплатил не вовремя..."
+                className="mt-1.5 w-full min-h-[60px] px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Эти примечания будут видны в истории записи
+              </p>
+            </div>
 
             {/* Submit */}
             <div className="flex gap-2 pt-2">

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { format, addDays, subDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { 
@@ -52,6 +53,8 @@ import { CancelAppointmentForm } from '@/components/schedule/CancelAppointmentFo
 import { RescheduleAppointmentForm } from '@/components/schedule/RescheduleAppointmentForm';
 import { AppointmentStats } from '@/components/schedule/AppointmentStats';
 import { MedicalRecordForm } from '@/components/schedule/MedicalRecordForm';
+import { OperationPaymentModal } from '@/components/schedule/OperationPaymentModal';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { appointmentsApi } from '@/api/appointments.api';
 import type { Appointment, AppointmentStatus, Department, User as UserType } from '@/types';
 import toast from 'react-hot-toast';
@@ -65,6 +68,7 @@ const TIME_SLOTS = Array.from({ length: 24 }, (_, i) => {
 
 export default function SchedulePage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { user, accessToken } = useAuthStore();
   const { can } = usePermissions();
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -80,6 +84,9 @@ export default function SchedulePage() {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('all');
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('all');
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>('appointments');
+  const [selectedOperation, setSelectedOperation] = useState<any>(null);
+  const [isOperationPaymentOpen, setIsOperationPaymentOpen] = useState(false);
 
   // WebSocket подключение
   useSocket(accessToken);
@@ -130,6 +137,18 @@ export default function SchedulePage() {
     },
   });
 
+  // Загрузка операций для регистратора
+  const { data: operations = [], isLoading: isLoadingOperations } = useQuery({
+    queryKey: ['operations-receptionist', format(selectedDate, 'yyyy-MM-dd')],
+    queryFn: async () => {
+      const response = await api.get<{ data: any[] }>(
+        `/api/doctor-service-assignments/receptionist?date=${format(selectedDate, 'yyyy-MM-dd')}`
+      );
+      return response.data || [];
+    },
+    enabled: user?.role === 'RECEPTIONIST',
+  });
+
   // Фильтрация записей для оператора и доктора (видят только свои)
   const visibleAppointments = appointments.filter((apt) => {
     // Доктор видит только свои записи (где он назначен доктором)
@@ -176,9 +195,28 @@ export default function SchedulePage() {
     return acc;
   }, {} as Record<string, Appointment[]>);
 
+  // Группировка операций по времени
+  const operationsByTime = operations.reduce((acc, op: any) => {
+    const time = op.time || 'Не указано';
+    if (!acc[time]) acc[time] = [];
+    acc[time].push(op);
+    return acc;
+  }, {} as Record<string, any[]>);
+
   const handleAppointmentClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
-    setIsDetailsOpen(true);
+    
+    // Для докторов и ассистентов сразу открываем карточку пациента
+    if (user?.role === 'DOCTOR' || user?.role === 'ASSISTANT') {
+      router.push(`/doctor-patients?patientId=${appointment.patientId}`);
+    } else {
+      setIsDetailsOpen(true);
+    }
+  };
+
+  const handleOperationClick = (operation: any) => {
+    setSelectedOperation(operation);
+    setIsOperationPaymentOpen(true);
   };
 
   const getStatusColor = (status: AppointmentStatus) => {
@@ -526,7 +564,16 @@ export default function SchedulePage() {
             const appointmentDateTime = new Date(selectedAppointment.date);
             const [hours, minutes] = selectedAppointment.time.split(':');
             appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-            const isPastTime = appointmentDateTime < new Date();
+            
+            // Для регистратора добавляем 3 часа к времени записи
+            const now = new Date();
+            const editDeadline = new Date(appointmentDateTime);
+            if (user?.role === 'RECEPTIONIST') {
+              editDeadline.setHours(editDeadline.getHours() + 3);
+            }
+            const isPastTime = user?.role === 'RECEPTIONIST' 
+              ? editDeadline < now 
+              : appointmentDateTime < now;
 
             return (
             <>
@@ -674,39 +721,63 @@ export default function SchedulePage() {
 
                 {/* Actions */}
                 <div className="space-y-2 pt-4 border-t">
-                  {/* Кнопки для регистратуры - 3 кнопки */}
-                  {user?.role === 'RECEPTIONIST' && selectedAppointment.status !== 'CANCELLED' && selectedAppointment.status !== 'DONE' && selectedAppointment.status !== 'ARRIVED' && !isPastTime && (
+                  {/* Кнопки для регистратуры */}
+                  {user?.role === 'RECEPTIONIST' && selectedAppointment.status !== 'CANCELLED' && selectedAppointment.status !== 'DONE' && (
                     <>
-                      <Button 
-                        className="w-full"
-                        onClick={() => {
-                          setIsDetailsOpen(false);
-                          setIsArrivedOpen(true);
-                        }}
-                      >
-                        Принять оплату
-                      </Button>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button 
-                          variant="outline"
-                          onClick={() => {
-                            setIsDetailsOpen(false);
-                            setIsRescheduleOpen(true);
-                          }}
-                        >
-                          Перенести
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          className="border-red-300 text-red-600 hover:bg-red-50"
-                          onClick={() => {
-                            setIsDetailsOpen(false);
-                            setIsCancelOpen(true);
-                          }}
-                        >
-                          Отменить
-                        </Button>
-                      </div>
+                      {/* В течение 3 часов - все кнопки */}
+                      {!isPastTime && selectedAppointment.status !== 'ARRIVED' && (
+                        <>
+                          <Button 
+                            className="w-full"
+                            onClick={() => {
+                              setIsDetailsOpen(false);
+                              setIsArrivedOpen(true);
+                            }}
+                          >
+                            Принять оплату
+                          </Button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button 
+                              variant="outline"
+                              onClick={() => {
+                                setIsDetailsOpen(false);
+                                setIsRescheduleOpen(true);
+                              }}
+                            >
+                              Перенести
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              className="border-red-300 text-red-600 hover:bg-red-50"
+                              onClick={() => {
+                                setIsDetailsOpen(false);
+                                setIsCancelOpen(true);
+                              }}
+                            >
+                              Отменить
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* После 3 часов - только кнопка "Перенести" */}
+                      {isPastTime && (
+                        <>
+                          <Button 
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              setIsDetailsOpen(false);
+                              setIsRescheduleOpen(true);
+                            }}
+                          >
+                            Перенести запись
+                          </Button>
+                          <div className="text-center text-xs text-gray-500 py-2 bg-gray-50 rounded-lg">
+                            ℹ️ Прошло более 3 часов после времени приема. Доступен только перенос записи.
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
 
@@ -779,8 +850,8 @@ export default function SchedulePage() {
                     </>
                   )}
                   
-                  {/* Сообщение если время прошло */}
-                  {isPastTime && (
+                  {/* Сообщение если время прошло для НЕ регистраторов */}
+                  {isPastTime && user?.role !== 'RECEPTIONIST' && (
                     <div className="text-center text-sm text-gray-500 py-4">
                       ⏰ Редактирование недоступно - время записи прошло
                     </div>
@@ -939,6 +1010,16 @@ export default function SchedulePage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Operation Payment Modal */}
+      <OperationPaymentModal
+        operation={selectedOperation}
+        isOpen={isOperationPaymentOpen}
+        onClose={() => {
+          setIsOperationPaymentOpen(false);
+          setSelectedOperation(null);
+        }}
+      />
     </AppShell>
   );
 }

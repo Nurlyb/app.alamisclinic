@@ -43,7 +43,13 @@ export const GET = withAuth(
       // Доктора видят только свои записи
       if (user.role === 'DOCTOR') {
         where.doctorId = user.userId;
-      } else if (doctorId) {
+      } 
+      // Ассистенты видят все записи (могут фильтровать через параметры)
+      else if (user.role === 'ASSISTANT') {
+        // Ассистенты имеют доступ ко всем записям
+        // Фильтрация происходит через параметры doctorId и departmentId
+      } 
+      else if (doctorId) {
         where.doctorId = doctorId;
       }
 

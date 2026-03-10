@@ -13,6 +13,7 @@ import {
   Settings, 
   FileText,
   Briefcase,
+  Scissors,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store/auth';
@@ -52,6 +53,31 @@ export function Sidebar() {
       href: '/schedule',
       icon: <Calendar className="w-5 h-5" />,
     });
+
+    // Мои пациенты - для докторов и ассистентов
+    if (user?.role === 'DOCTOR' || user?.role === 'ASSISTANT') {
+      items.push({
+        label: 'Мои пациенты',
+        href: '/doctor-patients',
+        icon: <Users className="w-5 h-5" />,
+      });
+      
+      // Календарь услуг - для докторов, ассистентов и регистраторов
+      items.push({
+        label: 'Календарь услуг',
+        href: '/operations-calendar',
+        icon: <Scissors className="w-5 h-5" />,
+      });
+    }
+
+    // Календарь услуг - для регистраторов (отдельно)
+    if (user?.role === 'RECEPTIONIST') {
+      items.push({
+        label: 'Календарь услуг',
+        href: '/operations-calendar',
+        icon: <Scissors className="w-5 h-5" />,
+      });
+    }
 
     // Направления - для операторов и врачей
     if (can('directions:view:all') || can('directions:view:own')) {

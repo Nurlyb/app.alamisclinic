@@ -56,18 +56,18 @@ export function DoctorServiceForm({ service, onClose, onSuccess }: DoctorService
     setLoading(true);
 
     try {
-      let response;
+      let response: { success?: boolean; error?: string };
       if (service) {
         // Обновление
         response = await apiClient.patch(`/api/doctor-services/${service.id}`, {
           customPrice: formData.customPrice ? parseFloat(formData.customPrice) : null,
-        });
+        }) as { success?: boolean; error?: string };
       } else {
         // Создание
         response = await apiClient.post('/api/doctor-services', {
           serviceId: formData.serviceId,
           customPrice: formData.customPrice ? parseFloat(formData.customPrice) : null,
-        });
+        }) as { success?: boolean; error?: string };
       }
 
       if (response.success) {

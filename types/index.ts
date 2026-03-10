@@ -46,6 +46,7 @@ export interface User {
   phone: string;
   departmentId?: string;
   department?: Department;
+  assistingDoctorId?: string;
   colorBadge?: string;
   isActive: boolean;
   createdAt: string;

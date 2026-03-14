@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
-import { User, Phone, Calendar, FileText, Plus, Stethoscope } from 'lucide-react';
+import { User, Phone, Calendar, FileText, Plus, Stethoscope, UserCheck } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,7 @@ import { MedicalRecordForm } from '@/components/schedule/MedicalRecordForm';
 import { AssignOperationForm } from '@/components/doctor/AssignOperationForm';
 import { EditPatientInfo } from '@/components/doctor/EditPatientInfo';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 import { ru } from 'date-fns/locale';
 
 export default function DoctorPatientsPage() {
@@ -150,6 +151,21 @@ export default function DoctorPatientsPage() {
       )[0] || null;
     },
     enabled: !!selectedPatient,
+  });
+
+  // Мутация для закрепления пациента за ассистентом
+  const assignAssistantMutation = useMutation({
+    mutationFn: async (appointmentId: string) => {
+      return api.patch(`/api/appointments/${appointmentId}/assign-assistant`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['doctor-appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['patient-last-appointment'] });
+      toast.success('Пациент закреплен за вами');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Ошибка закрепления пациента');
+    },
   });
 
   const handlePatientClick = (patient: any) => {
@@ -279,6 +295,55 @@ export default function DoctorPatientsPage() {
                   }}
                 />
 
+                {/* Doctor and Assistant Info */}
+                {lastAppointment && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 className="font-medium text-blue-900 mb-3">
+                      Команда лечения
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Stethoscope className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm text-blue-800">
+                          Доктор: <span className="font-medium">{lastAppointment.doctor?.name}</span>
+                        </span>
+                      </div>
+                      {lastAppointment.assistant ? (
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="w-4 h-4 text-green-600" />
+                          <span className="text-sm text-green-800">
+                            Ассистент: <span className="font-medium">{lastAppointment.assistant.name}</span>
+                          </span>
+                          {lastAppointment.assistantTakenAt && (
+                            <span className="text-xs text-gray-600">
+                              (взят на работу {format(new Date(lastAppointment.assistantTakenAt), 'dd.MM.yyyy HH:mm')})
+                            </span>
+                          )}
+                        </div>
+                      ) : user?.role === 'ASSISTANT' ? (
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            Ассистент не назначен
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+
+                {/* Assistant Action Button */}
+                {user?.role === 'ASSISTANT' && lastAppointment && !lastAppointment.assistantId && (
+                  <Button
+                    onClick={() => assignAssistantMutation.mutate(lastAppointment.id)}
+                    disabled={assignAssistantMutation.isPending}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    <UserCheck className="w-4 h-4 mr-2" />
+                    {assignAssistantMutation.isPending ? 'Закрепляю...' : 'Взять на работу'}
+                  </Button>
+                )}
+
                 {/* Action Buttons */}
                 <div className="grid grid-cols-2 gap-2">
                   <Button
@@ -292,7 +357,10 @@ export default function DoctorPatientsPage() {
                       }
                     }}
                     className="bg-green-600 hover:bg-green-700"
-                    disabled={!lastAppointment}
+                    disabled={
+                      !lastAppointment || 
+                      (user?.role === 'ASSISTANT' && (!lastAppointment?.assistantId || lastAppointment?.assistantId !== user?.id))
+                    }
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Записать диагноз
@@ -303,6 +371,9 @@ export default function DoctorPatientsPage() {
                       setIsPatientDetailsOpen(false);
                       setIsAssignOperationOpen(true);
                     }}
+                    disabled={
+                      user?.role === 'ASSISTANT' && (!lastAppointment?.assistantId || lastAppointment?.assistantId !== user?.id)
+                    }
                   >
                     <Stethoscope className="w-4 h-4 mr-2" />
                     Услуги доктора

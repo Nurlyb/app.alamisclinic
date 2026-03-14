@@ -228,14 +228,97 @@ export function PatientArrivedModal({
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isCompleted ? 'Оплата завершена' : 'Пациент прибыл'}
+            {isCompleted ? 'Прибытие подтверждено' : remainingAmount === 0 ? 'Пациент прибыл' : 'Пациент прибыл'}
           </DialogTitle>
           <DialogDescription>
             {appointment.patient.fullName}
+            {remainingAmount === 0 && !isCompleted && (
+              <span className="block text-green-600 text-sm mt-1">✅ Услуга полностью оплачена</span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         {!isCompleted ? (
+          remainingAmount === 0 ? (
+            // Если полная предоплата - упрощенная форма без оплаты
+            <div className="space-y-4">
+              {/* Service Info */}
+              <div className="p-3 bg-green-50 rounded-lg space-y-1.5 text-sm border border-green-200">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Услуга:</span>
+                  <span className="font-medium">{appointment.service.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Стоимость:</span>
+                  <span className="font-medium">
+                    {appointment.service.price.toLocaleString()} ₸
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Предоплата:</span>
+                  <span className="font-medium text-green-600">
+                    -{appointment.prepayment.toLocaleString()} ₸
+                  </span>
+                </div>
+                <div className="flex justify-between pt-1.5 border-t border-green-300">
+                  <span className="font-medium text-green-800">✅ Полностью оплачено</span>
+                  <span className="text-lg font-bold text-green-600">0 ₸</span>
+                </div>
+              </div>
+
+              {/* Receptionist Notes */}
+              <div>
+                <Label className="text-sm">Примечания (опционально)</Label>
+                <textarea
+                  {...register('receptionistNotes')}
+                  placeholder="Например: опоздал на 15 минут..."
+                  className="mt-1.5 w-full min-h-[60px] px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Эти примечания будут видны в истории записи
+                </p>
+              </div>
+
+              {/* Submit */}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                  className="flex-1"
+                >
+                  Отмена
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!appointment) return;
+                    try {
+                      await arriveMutation.mutateAsync(appointment.id);
+                      setIsCompleted(true);
+                      toast.success('Пациент отмечен как прибывший');
+                    } catch (error) {
+                      console.error('Error marking arrival:', error);
+                    }
+                  }}
+                  className="flex-1"
+                  disabled={arriveMutation.isPending}
+                >
+                  {arriveMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Обработка...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Отметить прибытие
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            // Обычная форма с оплатой
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
             {/* Service Info */}
             <div className="p-3 bg-gray-50 rounded-lg space-y-1.5 text-sm">
@@ -452,6 +535,7 @@ export function PatientArrivedModal({
               </Button>
             </div>
           </form>
+          )
         ) : (
           <div className="space-y-4">
             {/* Success Message */}
@@ -460,32 +544,34 @@ export function PatientArrivedModal({
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Оплата успешно проведена
+                {paymentId ? 'Оплата успешно проведена' : 'Прибытие подтверждено'}
               </h3>
               <p className="text-sm text-gray-600 text-center">
-                Чек готов к печати или скачиванию
+                {paymentId ? 'Чек готов к печати или скачиванию' : 'Пациент отмечен как прибывший'}
               </p>
             </div>
 
-            {/* Receipt Actions */}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleDownloadReceipt}
-                className="flex-1"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Скачать чек
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handlePrintReceipt}
-                className="flex-1"
-              >
-                <Printer className="w-4 h-4 mr-2" />
-                Печать
-              </Button>
-            </div>
+            {/* Receipt Actions - только если была оплата */}
+            {paymentId && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleDownloadReceipt}
+                  className="flex-1"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Скачать чек
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handlePrintReceipt}
+                  className="flex-1"
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  Печать
+                </Button>
+              </div>
+            )}
 
             {/* Close */}
             <Button onClick={handleClose} className="w-full">

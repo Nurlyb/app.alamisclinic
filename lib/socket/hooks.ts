@@ -13,6 +13,7 @@ import type {
   PatientArrivedEvent,
   DirectionEvent,
   NotificationEvent,
+  OperationEvent,
 } from './events';
 
 /**
@@ -54,17 +55,25 @@ export function useScheduleEvents(
     onCreated?: (appointment: AppointmentEvent) => void;
     onUpdated?: (appointment: AppointmentEvent) => void;
     onCancelled?: (appointment: AppointmentEvent) => void;
+    onOperationCreated?: (operation: OperationEvent) => void;
+    onOperationUpdated?: (operation: OperationEvent) => void;
+    onOperationCancelled?: (operation: OperationEvent) => void;
   }
 ) {
   useEffect(() => {
-    if (!doctorId || !isSocketConnected()) return;
+    if (!isSocketConnected()) return;
 
     const socket = getSocketClient();
 
     // Подписка на расписание
-    socket.emit('join:schedule', doctorId);
+    if (doctorId) {
+      socket.emit('join:schedule', doctorId);
+    } else {
+      // Подписка на все события расписания
+      socket.emit('join:all-schedule');
+    }
 
-    // Обработчики событий
+    // Обработчики событий записей
     if (callbacks.onCreated) {
       socket.on('appointment:created', callbacks.onCreated);
     }
@@ -75,8 +84,19 @@ export function useScheduleEvents(
       socket.on('appointment:cancelled', callbacks.onCancelled);
     }
 
+    // Обработчики событий операций
+    if (callbacks.onOperationCreated) {
+      socket.on('operation:created', callbacks.onOperationCreated);
+    }
+    if (callbacks.onOperationUpdated) {
+      socket.on('operation:updated', callbacks.onOperationUpdated);
+    }
+    if (callbacks.onOperationCancelled) {
+      socket.on('operation:cancelled', callbacks.onOperationCancelled);
+    }
+
     return () => {
-      // Отписка от событий
+      // Отписка от событий записей
       if (callbacks.onCreated) {
         socket.off('appointment:created', callbacks.onCreated);
       }
@@ -87,8 +107,23 @@ export function useScheduleEvents(
         socket.off('appointment:cancelled', callbacks.onCancelled);
       }
 
+      // Отписка от событий операций
+      if (callbacks.onOperationCreated) {
+        socket.off('operation:created', callbacks.onOperationCreated);
+      }
+      if (callbacks.onOperationUpdated) {
+        socket.off('operation:updated', callbacks.onOperationUpdated);
+      }
+      if (callbacks.onOperationCancelled) {
+        socket.off('operation:cancelled', callbacks.onOperationCancelled);
+      }
+
       // Отписка от расписания
-      socket.emit('leave:schedule', doctorId);
+      if (doctorId) {
+        socket.emit('leave:schedule', doctorId);
+      } else {
+        socket.emit('leave:all-schedule');
+      }
     };
   }, [doctorId, callbacks]);
 }

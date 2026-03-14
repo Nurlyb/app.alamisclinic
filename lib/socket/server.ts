@@ -70,6 +70,16 @@ export function initSocketServer(httpServer: HTTPServer): SocketIOServer {
       console.log(`📅 ${user.name} подписался на расписание доктора ${doctorId}`);
     });
 
+    // Подписка на все события расписания (для операторов, регистраторов, ассистентов)
+    socket.on('join:all-schedule', () => {
+      if (['OPERATOR', 'RECEPTIONIST', 'ASSISTANT', 'OWNER'].includes(user.role)) {
+        socket.join('all-schedule');
+        console.log(`📅 ${user.name} подписался на все события расписания`);
+      } else {
+        socket.emit('error', { message: 'Нет доступа к общему расписанию' });
+      }
+    });
+
     // Подписка на отделение
     socket.on('join:department', (departmentId: string) => {
       socket.join(`department:${departmentId}`);
@@ -80,6 +90,12 @@ export function initSocketServer(httpServer: HTTPServer): SocketIOServer {
     socket.on('leave:schedule', (doctorId: string) => {
       socket.leave(`schedule:${doctorId}`);
       console.log(`📅 ${user.name} отписался от расписания доктора ${doctorId}`);
+    });
+
+    // Отписка от всех событий расписания
+    socket.on('leave:all-schedule', () => {
+      socket.leave('all-schedule');
+      console.log(`📅 ${user.name} отписался от всех событий расписания`);
     });
 
     // Отписка от отделения
@@ -109,6 +125,49 @@ export function getSocketServer(): SocketIOServer {
 }
 
 // ============================================
+// СОБЫТИЯ - ОПЕРАЦИИ
+// ============================================
+
+/**
+ * Уведомление о создании операции
+ */
+export function emitOperationCreated(operation: any) {
+  if (!io) return;
+
+  // Отправка всем, кто подписан на расписание этого доктора
+  io.to(`schedule:${operation.doctorId}`).emit('operation:created', operation);
+
+  // Отправка всем, кто подписан на все события расписания
+  io.to('all-schedule').emit('operation:created', operation);
+
+  console.log(`🔧 Событие: operation:created для доктора ${operation.doctorId}`);
+}
+
+/**
+ * Уведомление об обновлении операции
+ */
+export function emitOperationUpdated(operation: any) {
+  if (!io) return;
+
+  io.to(`schedule:${operation.doctorId}`).emit('operation:updated', operation);
+  io.to('all-schedule').emit('operation:updated', operation);
+
+  console.log(`🔧 Событие: operation:updated для операции ${operation.id}`);
+}
+
+/**
+ * Уведомление об отмене операции
+ */
+export function emitOperationCancelled(operation: any) {
+  if (!io) return;
+
+  io.to(`schedule:${operation.doctorId}`).emit('operation:cancelled', operation);
+  io.to('all-schedule').emit('operation:cancelled', operation);
+
+  console.log(`🔧 Событие: operation:cancelled для операции ${operation.id}`);
+}
+
+// ============================================
 // СОБЫТИЯ - РАСПИСАНИЕ
 // ============================================
 
@@ -124,6 +183,9 @@ export function emitAppointmentCreated(appointment: any) {
   // Отправка в отделение
   io.to(`department:${appointment.departmentId}`).emit('appointment:created', appointment);
 
+  // Отправка всем, кто подписан на все события расписания
+  io.to('all-schedule').emit('appointment:created', appointment);
+
   console.log(`📅 Событие: appointment:created для доктора ${appointment.doctorId}`);
 }
 
@@ -135,6 +197,7 @@ export function emitAppointmentUpdated(appointment: any) {
 
   io.to(`schedule:${appointment.doctorId}`).emit('appointment:updated', appointment);
   io.to(`department:${appointment.departmentId}`).emit('appointment:updated', appointment);
+  io.to('all-schedule').emit('appointment:updated', appointment);
 
   console.log(`📅 Событие: appointment:updated для записи ${appointment.id}`);
 }
@@ -147,6 +210,7 @@ export function emitAppointmentCancelled(appointment: any) {
 
   io.to(`schedule:${appointment.doctorId}`).emit('appointment:cancelled', appointment);
   io.to(`department:${appointment.departmentId}`).emit('appointment:cancelled', appointment);
+  io.to('all-schedule').emit('appointment:cancelled', appointment);
 
   console.log(`📅 Событие: appointment:cancelled для записи ${appointment.id}`);
 }

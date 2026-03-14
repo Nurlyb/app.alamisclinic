@@ -36,18 +36,23 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // Для API маршрутов проверяем Authorization header или cookie
+  // Для API маршрутов проверяем Authorization header
   if (pathname.startsWith('/api/')) {
     const authHeader = request.headers.get('authorization');
-    const cookieToken = request.cookies.get('accessToken')?.value;
     
-    // Если есть Authorization header или cookie - пропускаем
+    // Если есть Authorization header - пропускаем
     // Проверка самого токена будет в withAuth middleware
-    if (authHeader || cookieToken) {
+    if (authHeader) {
       return response;
     }
     
-    // Если нет ни того, ни другого - возвращаем 401
+    // Публичные API маршруты
+    const publicApiPaths = ['/api/auth/login', '/api/auth/refresh'];
+    if (publicApiPaths.some(path => pathname.startsWith(path))) {
+      return response;
+    }
+    
+    // Если нет Authorization header и не публичный API - возвращаем 401
     return NextResponse.json(
       { error: 'Не авторизован' },
       { 

@@ -140,6 +140,49 @@ export const POST = withAuth(
         }
       }
 
+      // Проверка на конфликт времени, если указана дата
+      if (scheduledDate) {
+        const scheduledDateTime = new Date(scheduledDate);
+        
+        // Проверка конфликта с другими операциями
+        const conflictingOperation = await prisma.doctorServiceAssignment.findFirst({
+          where: {
+            doctorId,
+            scheduledDate: scheduledDateTime,
+            status: {
+              not: 'CANCELLED',
+            },
+          },
+        });
+
+        if (conflictingOperation) {
+          return errorResponse(
+            'На это время уже назначена операция',
+            'OPERATION_CONFLICT',
+            409
+          );
+        }
+
+        // Проверка конфликта с записями на прием
+        const conflictingAppointment = await prisma.appointment.findFirst({
+          where: {
+            doctorId,
+            datetime: scheduledDateTime,
+            status: {
+              notIn: ['CANCELLED', 'NO_SHOW'],
+            },
+          },
+        });
+
+        if (conflictingAppointment) {
+          return errorResponse(
+            'На это время уже есть запись на прием',
+            'APPOINTMENT_CONFLICT',
+            409
+          );
+        }
+      }
+
       // Создаем назначение
       const assignment = await prisma.doctorServiceAssignment.create({
         data: {

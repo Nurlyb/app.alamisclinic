@@ -93,6 +93,7 @@ export function authorize(permissions: Permission | Permission[]) {
           error: 'Недостаточно прав доступа',
           code: 'FORBIDDEN',
           required: requiredPermissions,
+          userRole: user.role,
         },
         { status: 403 }
       );

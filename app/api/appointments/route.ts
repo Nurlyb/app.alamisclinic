@@ -108,6 +108,13 @@ export const GET = withAuth(
               colorBadge: true,
             },
           },
+          assistant: {
+            select: {
+              id: true,
+              name: true,
+              colorBadge: true,
+            },
+          },
           service: {
             select: {
               id: true,
@@ -194,7 +201,7 @@ export const POST = withAuth(
         return errorResponse('Услуга не найдена', 'SERVICE_NOT_FOUND', 404);
       }
 
-      // Проверка на конфликт времени
+      // Проверка на конфликт времени с другими записями
       const conflictingAppointment = await prisma.appointment.findFirst({
         where: {
           doctorId: data.doctorId,
@@ -207,8 +214,27 @@ export const POST = withAuth(
 
       if (conflictingAppointment) {
         return errorResponse(
-          'На это время уже есть запись',
+          'На это время уже есть запись на прием',
           'TIME_CONFLICT',
+          409
+        );
+      }
+
+      // Проверка на конфликт времени с операциями
+      const conflictingOperation = await prisma.doctorServiceAssignment.findFirst({
+        where: {
+          doctorId: data.doctorId,
+          scheduledDate: new Date(data.datetime),
+          status: {
+            not: 'CANCELLED',
+          },
+        },
+      });
+
+      if (conflictingOperation) {
+        return errorResponse(
+          'На это время уже назначена операция',
+          'OPERATION_CONFLICT',
           409
         );
       }

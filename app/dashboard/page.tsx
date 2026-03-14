@@ -22,9 +22,9 @@ export default function DashboardPage() {
   const { can } = usePermissions();
   const router = useRouter();
 
-  // Оператор сразу перенаправляется на расписание
+  // Оператор и ассистент сразу перенаправляются на расписание
   useEffect(() => {
-    if (user?.role === 'OPERATOR') {
+    if (user?.role === 'OPERATOR' || user?.role === 'ASSISTANT') {
       router.push('/schedule');
     }
   }, [user, router]);
@@ -38,7 +38,7 @@ export default function DashboardPage() {
       );
       return response.data;
     },
-    enabled: can('analytics:view:all') && user?.role !== 'OPERATOR',
+    enabled: can('analytics:view:all') && user?.role !== 'OPERATOR' && user?.role !== 'ASSISTANT',
   });
 
   const stats = [

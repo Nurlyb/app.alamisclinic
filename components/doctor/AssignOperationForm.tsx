@@ -68,15 +68,60 @@ export function AssignOperationForm({
   const selectedDate = watch('scheduledDate');
   const selectedTime = watch('scheduledTime');
 
-  // Загрузка занятых слотов на выбранную дату
-  const { data: bookedSlots = [] } = useQuery({
+  // Загрузка занятых слотов на выбранную дату (операции и записи)
+  const { data: bookedSlots = {} } = useQuery({
     queryKey: ['booked-slots', selectedDate],
-    queryFn: async () => {
-      if (!selectedDate) return [];
-      const response = await api.get(
+    queryFn: async (): Promise<Record<string, { type: string; count: number }>> => {
+      if (!selectedDate) return {};
+      
+      // Загружаем операции
+      const operationsResponse = await api.get(
         `/api/doctor-service-assignments/calendar?date=${selectedDate}`
       ) as { data?: any[] };
-      return response.data?.map((item: any) => item.time) || [];
+      const operations = operationsResponse.data || [];
+      
+      // Загружаем записи на прием
+      const appointmentsResponse = await api.get(
+        `/api/appointments?date=${selectedDate}`
+      ) as { data?: any[] };
+      const appointments = appointmentsResponse.data || [];
+      
+      // Создаем объект с информацией о занятых слотах
+      const bookedInfo: Record<string, { type: string; count: number }> = {};
+      
+      // Обрабатываем операции
+      operations.forEach((op: any) => {
+        if (op.time) {
+          if (!bookedInfo[op.time]) {
+            bookedInfo[op.time] = { type: '', count: 0 };
+          }
+          bookedInfo[op.time].count++;
+          if (bookedInfo[op.time].type) {
+            bookedInfo[op.time].type = 'Прием и Операция';
+          } else {
+            bookedInfo[op.time].type = 'Операция';
+          }
+        }
+      });
+      
+      // Обрабатываем записи на прием
+      appointments.forEach((apt: any) => {
+        if (apt.time && apt.status !== 'CANCELLED' && apt.status !== 'NO_SHOW') {
+          if (!bookedInfo[apt.time]) {
+            bookedInfo[apt.time] = { type: '', count: 0 };
+          }
+          bookedInfo[apt.time].count++;
+          if (bookedInfo[apt.time].type && bookedInfo[apt.time].type !== 'Операция') {
+            bookedInfo[apt.time].type = 'Прием и Операция';
+          } else if (bookedInfo[apt.time].type === 'Операция') {
+            bookedInfo[apt.time].type = 'Прием и Операция';
+          } else {
+            bookedInfo[apt.time].type = 'Прием';
+          }
+        }
+      });
+      
+      return bookedInfo;
     },
     enabled: !!selectedDate,
   });
@@ -196,7 +241,8 @@ export function AssignOperationForm({
           </SelectTrigger>
           <SelectContent>
             {TIME_SLOTS.map((time) => {
-              const isBooked = bookedSlots.includes(time);
+              const slotInfo = bookedSlots[time];
+              const isBooked = !!slotInfo;
               const now = new Date();
               const slotDateTime = new Date(selectedDate);
               const [hours, minutes] = time.split(':');
@@ -209,7 +255,7 @@ export function AssignOperationForm({
                   value={time}
                   disabled={isBooked || isPast}
                 >
-                  {time} {isBooked ? '(занято)' : isPast ? '(прошло)' : ''}
+                  {time} {isBooked ? `(${slotInfo.type})` : isPast ? '(прошло)' : ''}
                 </SelectItem>
               );
             })}
@@ -218,9 +264,9 @@ export function AssignOperationForm({
         {errors.scheduledTime && (
           <p className="text-sm text-red-600 mt-1">{errors.scheduledTime.message}</p>
         )}
-        {selectedDate && bookedSlots.length > 0 && (
+        {selectedDate && Object.keys(bookedSlots).length > 0 && (
           <p className="text-xs text-gray-600 mt-1">
-            Занято слотов: {bookedSlots.length} из {TIME_SLOTS.length}
+            Занято слотов: {Object.keys(bookedSlots).length} из {TIME_SLOTS.length}
           </p>
         )}
       </div>

@@ -36,6 +36,9 @@ export const GET = withAuth(
       } else if (user.role === 'RECEPTIONIST') {
         // Регистратор видит все операции (для оплаты)
         // Не фильтруем по doctorId
+      } else if (user.role === 'OPERATOR') {
+        // Оператор видит все операции (для предотвращения конфликтов времени)
+        // Не фильтруем по doctorId
       } else {
         // Другие роли не имеют доступа
         return successResponse({ data: [] });
@@ -83,6 +86,12 @@ export const GET = withAuth(
               name: true,
             },
           },
+          assistant: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
         orderBy: {
           scheduledDate: 'asc',
@@ -112,7 +121,7 @@ export const GET = withAuth(
         };
       });
 
-      return successResponse(formattedAssignments);
+      return successResponse({ data: formattedAssignments });
     } catch (error) {
       return internalErrorResponse(error);
     }

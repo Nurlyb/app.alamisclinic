@@ -112,6 +112,9 @@ export interface Appointment {
   department: Department;
   managerId?: string;
   manager?: User;
+  assistantId?: string;
+  assistant?: User;
+  assistantTakenAt?: string;
   prepayment: number;
   comment?: string;
   arrivedAt?: string;

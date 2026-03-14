@@ -11,6 +11,8 @@ export interface ClientToServerEvents {
   // Подписки
   'join:schedule': (doctorId: string) => void;
   'leave:schedule': (doctorId: string) => void;
+  'join:all-schedule': () => void;
+  'leave:all-schedule': () => void;
   'join:department': (departmentId: string) => void;
   'leave:department': (departmentId: string) => void;
 
@@ -27,6 +29,11 @@ export interface ServerToClientEvents {
   'appointment:created': (data: AppointmentEvent) => void;
   'appointment:updated': (data: AppointmentEvent) => void;
   'appointment:cancelled': (data: AppointmentEvent) => void;
+
+  // Операции
+  'operation:created': (data: OperationEvent) => void;
+  'operation:updated': (data: OperationEvent) => void;
+  'operation:cancelled': (data: OperationEvent) => void;
 
   // Пациенты
   'patient:arrived': (data: PatientArrivedEvent) => void;
@@ -143,4 +150,30 @@ export interface AssistantAssignedEvent {
   appointmentId: string;
   patientName: string;
   doctorName: string;
+}
+
+export interface OperationEvent {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  serviceId: string;
+  assistantId?: string;
+  price: number;
+  status: string;
+  scheduledDate?: string;
+  time?: string;
+  notes?: string;
+  patient?: {
+    id: string;
+    fullName: string;
+    phone: string;
+  };
+  service?: {
+    id: string;
+    name: string;
+  };
+  assistant?: {
+    id: string;
+    name: string;
+  };
 }

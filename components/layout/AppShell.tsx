@@ -2,7 +2,9 @@
 
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { MobileAppShell } from './MobileAppShell';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { useAuthStore } from '@/lib/store/auth';
 import type { Permission } from '@/lib/auth/rbac';
 
 interface AppShellProps {
@@ -16,6 +18,21 @@ export function AppShell({
   requiredPermissions,
   requireAll 
 }: AppShellProps) {
+  const user = useAuthStore((state) => state.user);
+
+  // Для ассистентов используем мобильную версию
+  if (user?.role === 'ASSISTANT') {
+    return (
+      <MobileAppShell 
+        requiredPermissions={requiredPermissions}
+        requireAll={requireAll}
+      >
+        {children}
+      </MobileAppShell>
+    );
+  }
+
+  // Для остальных ролей используем обычную версию
   return (
     <ProtectedRoute 
       requiredPermissions={requiredPermissions}

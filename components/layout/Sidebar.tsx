@@ -13,12 +13,12 @@ import {
   Settings, 
   FileText,
   Briefcase,
-  Scissors,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Badge } from '@/components/ui/badge';
+import { Role } from '@/types';
 
 interface NavItem {
   label: string;
@@ -38,11 +38,26 @@ export function Sidebar() {
     const items: NavItem[] = [];
 
     // Для оператора показываем только расписание
-    if (user?.role === 'OPERATOR') {
+    if (user?.role === Role.OPERATOR) {
       items.push({
         label: 'Расписание',
         href: '/schedule',
         icon: <Calendar className="w-5 h-5" />,
+      });
+      return items;
+    }
+
+    // Для доктора показываем только расписание и мои пациенты
+    if (user?.role === 'DOCTOR' as Role) {
+      items.push({
+        label: 'Расписание',
+        href: '/schedule',
+        icon: <Calendar className="w-5 h-5" />,
+      });
+      items.push({
+        label: 'Мои пациенты',
+        href: '/doctor-patients',
+        icon: <Users className="w-5 h-5" />,
       });
       return items;
     }
@@ -54,28 +69,12 @@ export function Sidebar() {
       icon: <Calendar className="w-5 h-5" />,
     });
 
-    // Мои пациенты - для докторов и ассистентов
-    if (user?.role === 'DOCTOR' || user?.role === 'ASSISTANT') {
+    // Мои пациенты - для ассистентов
+    if (user?.role === Role.ASSISTANT) {
       items.push({
         label: 'Мои пациенты',
         href: '/doctor-patients',
         icon: <Users className="w-5 h-5" />,
-      });
-      
-      // Календарь услуг - для докторов, ассистентов и регистраторов
-      items.push({
-        label: 'Календарь услуг',
-        href: '/operations-calendar',
-        icon: <Scissors className="w-5 h-5" />,
-      });
-    }
-
-    // Календарь услуг - для регистраторов (отдельно)
-    if (user?.role === 'RECEPTIONIST') {
-      items.push({
-        label: 'Календарь услуг',
-        href: '/operations-calendar',
-        icon: <Scissors className="w-5 h-5" />,
       });
     }
 
@@ -101,7 +100,7 @@ export function Sidebar() {
     // Касса/Платежи
     if (can('payments:view:all') || can('payments:view:own')) {
       items.push({
-        label: user?.role === 'RECEPTIONIST' ? 'Касса' : 'Платежи',
+        label: user?.role === Role.RECEPTIONIST ? 'Касса' : 'Платежи',
         href: '/payments',
         icon: <CreditCard className="w-5 h-5" />,
       });
@@ -110,7 +109,7 @@ export function Sidebar() {
     // Зарплата - для врачей и владельца
     if (can('salary:view:all') || can('salary:view:own')) {
       items.push({
-        label: user?.role === 'DOCTOR' ? 'Моя зарплата' : 'Зарплаты',
+        label: user?.role === 'DOCTOR' as Role ? 'Моя зарплата' : 'Зарплаты',
         href: '/salary',
         icon: <DollarSign className="w-5 h-5" />,
       });

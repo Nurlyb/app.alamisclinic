@@ -1,19 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { DoctorAppointments } from '@/components/doctor/DoctorAppointments';
 import { DoctorPatients } from '@/components/doctor/DoctorPatients';
-import { DoctorServices } from '@/components/doctor/DoctorServices';
-import { DoctorServiceForm } from '@/components/doctor/DoctorServiceForm';
+import { DoctorOperations } from '@/components/doctor/DoctorOperations';
 
 export default function DoctorPage() {
   const { user } = useAuth();
-  const [showServiceForm, setShowServiceForm] = useState(false);
 
   if (!user || (user.role !== 'DOCTOR' && user.role !== 'ASSISTANT')) {
     return (
@@ -49,7 +44,7 @@ export default function DoctorPage() {
         <TabsList>
           <TabsTrigger value="appointments">Мои записи</TabsTrigger>
           <TabsTrigger value="patients">Мои пациенты</TabsTrigger>
-          <TabsTrigger value="services">Мои услуги</TabsTrigger>
+          <TabsTrigger value="services">Мои операции</TabsTrigger>
         </TabsList>
 
         <TabsContent value="appointments" className="space-y-4">
@@ -63,31 +58,14 @@ export default function DoctorPage() {
         <TabsContent value="services" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Мои услуги</CardTitle>
-                {user.role === 'DOCTOR' && (
-                  <Button onClick={() => setShowServiceForm(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Добавить услугу
-                  </Button>
-                )}
-              </div>
+              <CardTitle>Мои операции</CardTitle>
             </CardHeader>
             <CardContent>
-              <DoctorServices />
+              <DoctorOperations />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {showServiceForm && (
-        <DoctorServiceForm
-          onClose={() => setShowServiceForm(false)}
-          onSuccess={() => {
-            setShowServiceForm(false);
-          }}
-        />
-      )}
     </div>
   );
 }

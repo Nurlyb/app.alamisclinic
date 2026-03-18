@@ -152,12 +152,15 @@ export function OperationTimerModal({ operation, isOpen, onClose }: OperationTim
     // Доктор может запускать свои операции
     (user?.role === 'DOCTOR' && operation.doctorId === user?.id) ||
     // Ассистент может запускать операции только если взял их на работу
-    (user?.role === 'ASSISTANT' && operation.assistantId === user?.id) ||
-    // Регистратор может запускать любые оплаченные операции
-    user?.role === 'RECEPTIONIST'
+    (user?.role === 'ASSISTANT' && operation.assistantId === user?.id)
   );
   
-  const canComplete = operation.status === 'IN_PROGRESS' || isRunning;
+  const canComplete = (operation.status === 'IN_PROGRESS' || isRunning) && (
+    // Доктор может завершать свои операции
+    (user?.role === 'DOCTOR' && operation.doctorId === user?.id) ||
+    // Ассистент может завершать операции только если взял их на работу
+    (user?.role === 'ASSISTANT' && operation.assistantId === user?.id)
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -218,7 +221,7 @@ export function OperationTimerModal({ operation, isOpen, onClose }: OperationTim
               </Button>
             )}
 
-            {/* Информационное сообщение для ассистентов */}
+            {/* Информационные сообщения */}
             {user?.role === 'ASSISTANT' && operation.status === 'PAID' && !operation.assistantId && (
               <div className="flex-1 text-center text-sm text-amber-600 py-3 bg-amber-50 rounded-lg border border-amber-200">
                 ⚠️ Сначала возьмите операцию на работу в расписании
@@ -228,6 +231,12 @@ export function OperationTimerModal({ operation, isOpen, onClose }: OperationTim
             {user?.role === 'ASSISTANT' && operation.status === 'PAID' && operation.assistantId && operation.assistantId !== user?.id && (
               <div className="flex-1 text-center text-sm text-red-600 py-3 bg-red-50 rounded-lg border border-red-200">
                 🚫 Операцию взял другой ассистент: {operation.assistant?.name}
+              </div>
+            )}
+
+            {user?.role === 'RECEPTIONIST' && (operation.status === 'PAID' || operation.status === 'IN_PROGRESS') && (
+              <div className="flex-1 text-center text-sm text-blue-600 py-3 bg-blue-50 rounded-lg border border-blue-200">
+                ℹ️ Только доктор или ассистент может управлять операцией
               </div>
             )}
 

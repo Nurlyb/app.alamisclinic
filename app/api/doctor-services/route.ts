@@ -23,9 +23,28 @@ const createDoctorServiceSchema = z.object({
 export const GET = withAuth(
   async (request, user) => {
     try {
+      const { searchParams } = new URL(request.url);
+      const departmentId = searchParams.get('departmentId');
+
+      const where: any = {
+        isActive: true,
+      };
+
       const services = await prisma.doctorService.findMany({
-        where: {
-          isActive: true,
+        where,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          assignments: {
+            select: {
+              id: true,
+              status: true,
+            },
+          },
         },
         orderBy: {
           name: 'asc',

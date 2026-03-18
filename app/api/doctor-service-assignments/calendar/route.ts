@@ -86,6 +86,12 @@ export const GET = withAuth(
               name: true,
             },
           },
+          doctor: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
           assistant: {
             select: {
               id: true,

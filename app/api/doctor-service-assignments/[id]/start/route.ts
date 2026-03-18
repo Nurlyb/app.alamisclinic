@@ -48,8 +48,19 @@ export const PATCH = withAuth(
       }
 
       // Проверка прав доступа
-      if (user.role === 'DOCTOR' && assignment.doctorId !== user.userId) {
-        return errorResponse('Нет доступа к этой операции', 'ACCESS_DENIED', 403);
+      if (user.role === 'DOCTOR') {
+        // Доктор может запускать только свои операции
+        if (assignment.doctorId !== user.userId) {
+          return errorResponse('Нет доступа к этой операции', 'ACCESS_DENIED', 403);
+        }
+      } else if (user.role === 'ASSISTANT') {
+        // Ассистент может запускать только операции, которые взял на работу
+        if ((assignment as any).assistantId !== user.userId) {
+          return errorResponse('Вы не взяли эту операцию на работу', 'ACCESS_DENIED', 403);
+        }
+      } else {
+        // Другие роли не могут запускать операции
+        return errorResponse('У вас нет прав для запуска операций', 'ACCESS_DENIED', 403);
       }
 
       // Проверка статуса

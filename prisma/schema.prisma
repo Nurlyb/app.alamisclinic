@@ -129,6 +129,7 @@ model User {
   appointments        Appointment[]         @relation("DoctorAppointments")
   managedAppts        Appointment[]         @relation("ManagerAppointments")
   assistantAppts      Appointment[]         @relation("AssistantAppointments")
+  doctorOperations    DoctorServiceAssignment[] @relation("DoctorOperations")
   assistantOperations DoctorServiceAssignment[] @relation("AssistantOperations")
   notifications       Notification[]
   auditLogs           AuditLog[]
@@ -560,6 +561,7 @@ model DoctorServiceAssignment {
 
   // Relations
   patient   Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor    User          @relation("DoctorOperations", fields: [doctorId], references: [id])
   service   DoctorService @relation(fields: [serviceId], references: [id])
   assistant User?         @relation("AssistantOperations", fields: [assistantId], references: [id])
 

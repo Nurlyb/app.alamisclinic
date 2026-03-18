@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { api } from '@/api/client';
+import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 
 // Временные слоты (каждые 30 минут с 8:00 до 20:00)
@@ -48,6 +49,7 @@ export function AssignOperationForm({
   onSuccess,
 }: AssignOperationFormProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const {
     register,
@@ -70,19 +72,19 @@ export function AssignOperationForm({
 
   // Загрузка занятых слотов на выбранную дату (операции и записи)
   const { data: bookedSlots = {} } = useQuery({
-    queryKey: ['booked-slots', selectedDate],
+    queryKey: ['booked-slots', selectedDate, user?.id],
     queryFn: async (): Promise<Record<string, { type: string; count: number }>> => {
-      if (!selectedDate) return {};
+      if (!selectedDate || !user?.id) return {};
       
-      // Загружаем операции
+      // Загружаем операции доктора
       const operationsResponse = await api.get(
-        `/api/doctor-service-assignments/calendar?date=${selectedDate}`
-      ) as { data?: any[] };
-      const operations = operationsResponse.data || [];
+        `/api/doctor-service-assignments/calendar?date=${selectedDate}&doctorId=${user.id}`
+      ) as { data?: { data?: any[] } };
+      const operations = operationsResponse.data?.data || [];
       
-      // Загружаем записи на прием
+      // Загружаем записи на прием доктора
       const appointmentsResponse = await api.get(
-        `/api/appointments?date=${selectedDate}`
+        `/api/appointments?date=${selectedDate}&doctorId=${user.id}`
       ) as { data?: any[] };
       const appointments = appointmentsResponse.data || [];
       
@@ -123,16 +125,23 @@ export function AssignOperationForm({
       
       return bookedInfo;
     },
-    enabled: !!selectedDate,
+    enabled: !!selectedDate && !!user?.id,
   });
 
-  // Загрузка услуг докторов
+  // Загрузка услуг докторов (только для текущего отделения доктора)
   const { data: services = [] } = useQuery({
-    queryKey: ['doctor-services'],
+    queryKey: ['doctor-services-for-assignment', user?.departmentId],
     queryFn: async () => {
-      const response = await api.get('/api/doctor-services') as { data?: { services?: any[] } };
+      const departmentId = user?.departmentId;
+      let url = '/api/doctor-services';
+      if (departmentId) {
+        url += `?departmentId=${departmentId}`;
+      }
+      
+      const response = await api.get(url) as { data?: { services?: any[] } };
       return response.data?.services || [];
     },
+    enabled: !!user, // Загружаем только когда пользователь загружен
   });
 
   const mutation = useMutation({
@@ -142,6 +151,7 @@ export function AssignOperationForm({
       
       return api.post('/api/doctor-service-assignments', {
         patientId,
+        doctorId: user?.id, // Добавляем ID доктора
         serviceId: data.serviceId,
         price: data.price,
         notes: data.notes,

@@ -8,24 +8,25 @@ import { prisma } from '@/lib/db/prisma';
 import { emitOperationUpdated } from '@/lib/socket/server';
 import {
   successResponse,
-  notFoundResponse,
-  forbiddenResponse,
+  errorResponse,
   internalErrorResponse,
 } from '@/lib/utils/response';
 
 export const POST = withAuth(
-  async (request: NextRequest, user, context: { params: { id: string } }) => {
+  async (request: NextRequest, user) => {
     try {
-      // Извлекаем ID из параметров
-      const { id } = context.params;
+      // Извлекаем ID из URL
+      const url = new URL(request.url);
+      const pathSegments = url.pathname.split('/');
+      const id = pathSegments[pathSegments.length - 2]; // ID находится перед /assign-assistant
 
       if (!id) {
-        return forbiddenResponse('ID операции обязателен');
+        return errorResponse('ID операции обязателен', 'ID_REQUIRED', 400);
       }
 
       // Только ассистенты могут брать операции на работу
       if (user.role !== 'ASSISTANT') {
-        return forbiddenResponse('Только ассистенты могут брать операции на работу');
+        return errorResponse('Только ассистенты могут брать операции на работу', 'ACCESS_DENIED', 403);
       }
 
       // Находим операцию
@@ -49,17 +50,17 @@ export const POST = withAuth(
       });
 
       if (!operation) {
-        return notFoundResponse('Операция не найдена');
+        return errorResponse('Операция не найдена', 'OPERATION_NOT_FOUND', 404);
       }
 
       // Проверяем, что операция еще не взята другим ассистентом
-      if (operation.assistantId && operation.assistantId !== user.userId) {
-        return forbiddenResponse('Операция уже взята другим ассистентом');
+      if ((operation as any).assistantId && (operation as any).assistantId !== user.userId) {
+        return errorResponse('Операция уже взята другим ассистентом', 'ALREADY_ASSIGNED', 400);
       }
 
       // Проверяем, что операция не взята этим же ассистентом
-      if (operation.assistantId === user.userId) {
-        return forbiddenResponse('Вы уже взяли эту операцию на работу');
+      if ((operation as any).assistantId === user.userId) {
+        return errorResponse('Вы уже взяли эту операцию на работу', 'ALREADY_TAKEN', 400);
       }
 
       // Обновляем операцию
@@ -68,7 +69,7 @@ export const POST = withAuth(
         data: {
           assistantId: user.userId,
           assistantTakenAt: new Date(),
-        },
+        } as any,
         include: {
           patient: {
             select: {
@@ -89,7 +90,7 @@ export const POST = withAuth(
               name: true,
             },
           },
-        },
+        } as any,
       });
 
       // Отправляем WebSocket событие

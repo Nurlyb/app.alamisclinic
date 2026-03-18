@@ -122,14 +122,14 @@ export default function SchedulePage() {
   const handleTakeOperation = async (operationId: string) => {
     try {
       const response: any = await api.post(`/api/doctor-service-assignments/${operationId}/assign-assistant`);
-      if (response.data?.success) {
+      if (response) {
         // Обновляем данные
         queryClient.invalidateQueries({ queryKey: ['operations-calendar'] });
         toast.success('Операция взята на работу');
         setIsDetailsOpen(false);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Ошибка при взятии операции на работу');
+      toast.error(error.response?.data?.error || 'Ошибка при взятии операции на работу');
     }
   };
 
@@ -328,14 +328,28 @@ export default function SchedulePage() {
         setIsDetailsOpen(true);
       }
     }
-    // Для регистратора и неоплаченных операций открываем окно оплаты
-    else if (user?.role === 'RECEPTIONIST' && operation.status === 'PLANNED') {
-      setIsOperationPaymentOpen(true);
-    } else if (operation.status === 'PAID' || operation.status === 'IN_PROGRESS') {
-      // Для оплаченных операций открываем таймер
-      setIsOperationTimerOpen(true);
-    } else {
-      // Для остальных случаев открываем детали операции
+    // Для регистратора
+    else if (user?.role === 'RECEPTIONIST') {
+      if (operation.status === 'PLANNED') {
+        // Неоплаченные операции - открываем окно оплаты
+        setIsOperationPaymentOpen(true);
+      } else {
+        // Оплаченные операции - только просмотр деталей
+        setIsDetailsOpen(true);
+      }
+    }
+    // Для доктора и владельца
+    else if (user?.role === 'DOCTOR' || user?.role === 'OWNER') {
+      if (operation.status === 'PAID' || operation.status === 'IN_PROGRESS') {
+        // Для оплаченных операций открываем таймер
+        setIsOperationTimerOpen(true);
+      } else {
+        // Для остальных случаев открываем детали операции
+        setIsDetailsOpen(true);
+      }
+    }
+    else {
+      // Для остальных ролей - только просмотр деталей
       setIsDetailsOpen(true);
     }
   };
@@ -761,7 +775,7 @@ export default function SchedulePage() {
                                     <div className="flex items-center justify-between text-xs text-gray-600">
                                       <div className="flex items-center gap-1 truncate">
                                         <Stethoscope className="w-3 h-3" />
-                                        <span className="truncate">Доктор</span>
+                                        <span className="truncate">{operation.doctor?.name || 'Доктор'}</span>
                                       </div>
                                       {operation.assistant && (
                                         <div className="flex items-center gap-1 text-green-600">
@@ -839,7 +853,7 @@ export default function SchedulePage() {
                           <div className="flex items-center justify-between text-xs text-gray-600">
                             <div className="flex items-center gap-1 truncate">
                               <Stethoscope className="w-3 h-3" />
-                              <span className="truncate">Доктор</span>
+                              <span className="truncate">{operation.doctor?.name || 'Доктор'}</span>
                             </div>
                             {operation.assistant && (
                               <div className="flex items-center gap-1 text-green-600">
@@ -1430,6 +1444,14 @@ export default function SchedulePage() {
                   </div>
                 </div>
 
+                {/* Doctor */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Доктор</label>
+                  <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                    <p className="font-medium">{selectedOperation.doctor?.name || 'Доктор'}</p>
+                  </div>
+                </div>
+
                 {/* Service */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">Услуга</label>
@@ -1448,7 +1470,8 @@ export default function SchedulePage() {
                     <div className="mt-2 p-3 bg-gray-50 rounded-lg space-y-2">
                       <div className="flex items-center gap-2">
                         <Stethoscope className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm">Доктор</span>
+                        <span className="text-sm font-medium">{selectedOperation.doctor?.name || 'Доктор'}</span>
+                        <Badge className="text-xs bg-blue-100 text-blue-800">Доктор</Badge>
                       </div>
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-green-600" />

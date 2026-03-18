@@ -185,9 +185,10 @@ model Department {
   createdAt  DateTime  @default(now())
 
   // Relations
-  categories   ServiceCategory[]
-  services     Service[]
-  appointments Appointment[]
+  categories      ServiceCategory[]
+  services        Service[]
+  appointments    Appointment[]
+  doctorServices  DoctorServiceDepartment[] // Связь с услугами докторов
 
   @@map("departments")
 }
@@ -535,9 +536,27 @@ model DoctorService {
   // Relations
   creator     User                      @relation(fields: [createdBy], references: [id])
   assignments DoctorServiceAssignment[] // Назначения операций пациентам
+  departments DoctorServiceDepartment[] // Связь с отделениями
 
   @@index([isActive])
   @@map("doctor_services")
+}
+
+/// Связь услуг докторов с отделениями (многие ко многим)
+model DoctorServiceDepartment {
+  id            String @id @default(uuid())
+  serviceId     String
+  departmentId  String
+  createdAt     DateTime @default(now())
+
+  // Relations
+  service    DoctorService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  department Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, departmentId])
+  @@index([serviceId])
+  @@index([departmentId])
+  @@map("doctor_service_departments")
 }
 
 /// Назначенные операции пациентам (доктор назначает и ставит цену)

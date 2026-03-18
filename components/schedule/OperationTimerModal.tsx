@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/store/auth';
 import toast from 'react-hot-toast';
 

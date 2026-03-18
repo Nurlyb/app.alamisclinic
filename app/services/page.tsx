@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import { departmentsApi } from '@/api/departments.api';
 import { ServiceForm } from '@/components/services/ServiceForm';
 import type { Service, Department } from '@/types';

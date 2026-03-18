@@ -128,3 +128,12 @@ class APIClient {
 }
 
 export const apiClient = new APIClient(API_URL);
+
+// Compatibility export for existing code
+export const api = {
+  get: <T>(url: string) => apiClient.get<T>(url).then(res => res.data),
+  post: <T>(url: string, data?: any) => apiClient.post<T>(url, data).then(res => res.data),
+  put: <T>(url: string, data?: any) => apiClient.put<T>(url, data).then(res => res.data),
+  patch: <T>(url: string, data?: any) => apiClient.patch<T>(url, data).then(res => res.data),
+  delete: <T>(url: string) => apiClient.delete<T>(url).then(res => res.data),
+};

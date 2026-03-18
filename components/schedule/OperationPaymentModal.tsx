@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 
 const paymentSchema = z.object({

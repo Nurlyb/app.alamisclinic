@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import { departmentsApi } from '@/api/departments.api';
 import type { Service, Department } from '@/types';
 import toast from 'react-hot-toast';

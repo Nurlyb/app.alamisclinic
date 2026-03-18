@@ -19,6 +19,7 @@ import {
 const updateDoctorServiceSchema = z.object({
   name: z.string().min(1, 'Название обязательно').optional(),
   description: z.string().optional(),
+  departmentIds: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -42,9 +43,33 @@ export const PUT = withAuth(
         return errorResponse('Услуга не найдена', 'SERVICE_NOT_FOUND', 404);
       }
 
+      const { departmentIds, ...updateData } = validation.data;
+
       const updated = await prisma.doctorService.update({
         where: { id },
-        data: validation.data,
+        data: {
+          ...updateData,
+          ...(departmentIds && {
+            departments: {
+              deleteMany: {}, // Удаляем все существующие связи
+              create: departmentIds.map(departmentId => ({
+                departmentId,
+              })),
+            },
+          }),
+        },
+        include: {
+          departments: {
+            include: {
+              department: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       return successResponse({ service: updated });

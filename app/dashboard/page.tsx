@@ -13,7 +13,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { useAuthStore } from '@/lib/store/auth';
 import { usePermissions } from '@/hooks/usePermissions';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import type { DashboardAnalytics } from '@/types';
 import Link from 'next/link';
 

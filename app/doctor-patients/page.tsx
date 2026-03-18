@@ -22,7 +22,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import { useAuthStore } from '@/lib/store/auth';
 import { MedicalRecordForm } from '@/components/schedule/MedicalRecordForm';
 import { AssignOperationForm } from '@/components/doctor/AssignOperationForm';

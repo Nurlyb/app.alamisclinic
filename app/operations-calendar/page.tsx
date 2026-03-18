@@ -36,7 +36,7 @@ import {
   SheetTitle,
   SheetDescription 
 } from '@/components/ui/sheet';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import { departmentsApi } from '@/api/departments.api';
 import { usersApi } from '@/api/users.api';
 import { useAuthStore } from '@/lib/store/auth';

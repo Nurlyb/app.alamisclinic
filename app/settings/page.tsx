@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import { departmentsApi } from '@/api/departments.api';
 import { DepartmentForm } from '@/components/settings/DepartmentForm';
 import { ServiceForm } from '@/components/services/ServiceForm';
@@ -397,6 +397,21 @@ export default function SettingsPage() {
                       {service.description && (
                         <p className="text-sm text-gray-600 mb-3">{service.description}</p>
                       )}
+                      {service.departments && service.departments.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-gray-500 mb-1">Отделения:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {service.departments.map((dept: any) => (
+                              <span
+                                key={dept.department.id}
+                                className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full"
+                              >
+                                {dept.department.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <div className="text-xs text-gray-500">
                         Создано: {new Date(service.createdAt).toLocaleDateString('ru-RU')}
                       </div>
@@ -483,7 +498,7 @@ export default function SettingsPage() {
 
       {/* Doctor Service Dialogs */}
       <Dialog open={isDoctorServiceCreateOpen} onOpenChange={setIsDoctorServiceCreateOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Добавить услугу доктора</DialogTitle>
           </DialogHeader>
@@ -497,7 +512,7 @@ export default function SettingsPage() {
       </Dialog>
 
       <Dialog open={isDoctorServiceEditOpen} onOpenChange={setIsDoctorServiceEditOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Редактировать услугу доктора</DialogTitle>
           </DialogHeader>

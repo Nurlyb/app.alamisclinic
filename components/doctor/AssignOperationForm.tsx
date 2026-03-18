@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -128,11 +128,25 @@ export function AssignOperationForm({
     enabled: !!selectedDate && !!user?.id,
   });
 
-  // Загрузка услуг докторов (только для текущего отделения доктора)
+  // Загрузка услуг докторов (для отделения доктора или ассистируемого доктора)
   const { data: services = [] } = useQuery({
-    queryKey: ['doctor-services-for-assignment', user?.departmentId],
+    queryKey: ['doctor-services-for-assignment', user?.departmentId, user?.assistingDoctorId],
     queryFn: async () => {
-      const departmentId = user?.departmentId;
+      let departmentId = user?.departmentId;
+      
+      // Если это ассистент, получаем отделение доктора, которого он ассистирует
+      if (user?.role === 'ASSISTANT' && user?.assistingDoctorId) {
+        try {
+          const doctorResponse = await api.get(`/api/users/${user.assistingDoctorId}`) as { data?: { user?: any } };
+          const assistedDoctor = doctorResponse.data?.user;
+          if (assistedDoctor?.departmentId) {
+            departmentId = assistedDoctor.departmentId;
+          }
+        } catch (error) {
+          console.error('Ошибка получения данных ассистируемого доктора:', error);
+        }
+      }
+      
       let url = '/api/doctor-services';
       if (departmentId) {
         url += `?departmentId=${departmentId}`;

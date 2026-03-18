@@ -26,10 +26,12 @@ async function getHandler(request: NextRequest, user: JWTPayload) {
 
     // Пользователь может получить свою собственную информацию
     // Владелец может получить информацию о любом пользователе
-    // Ассистенты и доктора могут получить свою информацию (для загрузки assistingDoctorId)
+    // Ассистенты могут получить информацию о докторе, которого ассистируют
+    // Доктора могут получить свою информацию
     const canAccess = 
       user.userId === id || // Свой профиль
       user.role === 'OWNER' || // Владелец видит всех
+      (user.role === 'ASSISTANT' && user.assistingDoctorId === id) || // Ассистент может видеть своего доктора
       (user.role === 'ASSISTANT' && user.userId === id) || // Ассистент видит свой профиль
       (user.role === 'DOCTOR' && user.userId === id); // Доктор видит свой профиль
     
@@ -56,7 +58,7 @@ async function getHandler(request: NextRequest, user: JWTPayload) {
       return notFoundResponse('Пользователь');
     }
 
-    return successResponse(foundUser);
+    return successResponse({ user: foundUser });
   } catch (error) {
     return internalErrorResponse(error);
   }

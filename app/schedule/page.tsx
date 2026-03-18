@@ -44,7 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import { departmentsApi } from '@/api/departments.api';
 import { usersApi } from '@/api/users.api';
 import { useAuthStore } from '@/lib/store/auth';

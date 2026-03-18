@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import toast from 'react-hot-toast';
 import { Loader2, Save } from 'lucide-react';
 

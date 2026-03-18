@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { appointmentsApi } from '@/api/appointments.api';
-import { api } from '@/api/client';
+import { api } from '@/lib/api/client';
 import type { Appointment } from '@/types';
 import { AppointmentStatus } from '@/types';
 import toast from 'react-hot-toast';

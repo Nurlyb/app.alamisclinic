@@ -115,7 +115,7 @@ export default function OperationsCalendarPage() {
       }
       
       const response = await api.get<{ data: any[] }>(url);
-      return response.data || [];
+      return response?.data || [];
     },
   });
 

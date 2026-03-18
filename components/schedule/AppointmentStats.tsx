@@ -42,7 +42,16 @@ export function AppointmentStats({ date, managerId }: AppointmentStatsProps) {
       const response = await api.get<{ data: Stats }>(
         `/api/appointments/stats?${params.toString()}`
       );
-      return response.data;
+      return response?.data || {
+        total: 0,
+        pending: 0,
+        confirmed: 0,
+        arrived: 0,
+        done: 0,
+        cancelled: 0,
+        noShow: 0,
+        transferred: 0
+      };
     },
   });
 

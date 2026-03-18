@@ -14,9 +14,10 @@ import {
 
 // GET - получить отделения услуги доктора
 export const GET = withAuth(
-  async (request, user, { params }) => {
+  async (request, user) => {
     try {
-      const { id } = params;
+      const { pathname } = new URL(request.url);
+      const id = pathname.split('/').slice(-2, -1)[0]; // Извлекаем ID из URL
 
       const service = await prisma.doctorService.findUnique({
         where: { id },

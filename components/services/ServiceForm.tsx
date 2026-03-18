@@ -48,7 +48,7 @@ export function ServiceForm({ service, onSuccess }: ServiceFormProps) {
     queryFn: async () => {
       if (!formData.departmentId) return [];
       const response = await api.get<{ data: any }>(`/api/departments/${formData.departmentId}/categories`);
-      return response.data || [];
+      return response?.data || [];
     },
     enabled: !!formData.departmentId,
   });

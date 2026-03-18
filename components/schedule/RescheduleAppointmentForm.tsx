@@ -51,7 +51,7 @@ export function RescheduleAppointmentForm({
       const response = await api.get<{ data: Appointment[] }>(
         `/api/appointments?date=${newDate}`
       );
-      return response.data || [];
+      return response?.data || [];
     },
     enabled: !!newDate,
   });

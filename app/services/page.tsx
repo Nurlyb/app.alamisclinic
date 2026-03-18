@@ -38,7 +38,7 @@ export default function ServicesPage() {
     queryKey: ['services'],
     queryFn: async () => {
       const response = await api.get<{ data: Service[] }>('/api/services');
-      return response.data || [];
+      return response?.data || [];
     },
   });
 

@@ -36,7 +36,7 @@ export default function DashboardPage() {
       const response = await api.get<{ data: DashboardAnalytics }>(
         '/api/analytics/dashboard'
       );
-      return response.data;
+      return response?.data;
     },
     enabled: can('analytics:view:all') && user?.role !== 'OPERATOR' && user?.role !== 'ASSISTANT',
   });

@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
         name: true,
         role: true,
         departmentId: true,
+        assistingDoctorId: true,
         isActive: true,
       },
     });
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
       role: user.role,
       name: user.name,
       departmentId: user.departmentId || undefined,
+      assistingDoctorId: user.assistingDoctorId || undefined,
     });
 
     return NextResponse.json({

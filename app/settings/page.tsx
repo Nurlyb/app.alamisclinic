@@ -55,7 +55,7 @@ export default function SettingsPage() {
     queryKey: ['services'],
     queryFn: async () => {
       const response = await api.get<{ data: Service[] }>('/api/services');
-      return response.data || [];
+      return response?.data || [];
     },
   });
 
@@ -88,7 +88,7 @@ export default function SettingsPage() {
     queryKey: ['doctor-services'],
     queryFn: async () => {
       const response = await api.get<{ data: { services: any[] } }>('/api/doctor-services');
-      return response.data?.services || [];
+      return response?.data?.services || [];
     },
   });
 

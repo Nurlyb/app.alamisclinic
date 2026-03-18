@@ -16,6 +16,7 @@ export interface JWTPayload {
   role: Role;
   name: string;
   departmentId?: string;
+  assistingDoctorId?: string;
 }
 
 export interface TokenPair {

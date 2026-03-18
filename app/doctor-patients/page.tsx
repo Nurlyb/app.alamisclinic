@@ -49,7 +49,7 @@ export default function DoctorPatientsPage() {
     queryKey: ['doctor-appointments'],
     queryFn: async () => {
       const response = await api.get<{ data: any[] }>('/api/appointments');
-      return response.data || [];
+      return response?.data || [];
     },
   });
 
@@ -115,7 +115,7 @@ export default function DoctorPatientsPage() {
       const response = await api.get<{ data: { assignments: any[] } }>(
         `/api/doctor-service-assignments?patientId=${selectedPatient.id}`
       );
-      return response.data?.assignments || [];
+      return response?.data?.assignments || [];
     },
     enabled: !!selectedPatient,
   });
@@ -142,7 +142,7 @@ export default function DoctorPatientsPage() {
     queryFn: async () => {
       if (!selectedPatient) return null;
       const response = await api.get<{ data: any[] }>('/api/appointments');
-      const patientAppointments = response.data?.filter(
+      const patientAppointments = response?.data?.filter(
         (apt: any) => apt.patientId === selectedPatient.id && apt.status === 'ARRIVED'
       ) || [];
       // Возвращаем последнюю запись

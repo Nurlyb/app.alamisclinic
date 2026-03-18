@@ -20,7 +20,7 @@ export function AuthInitializer({ children }: AuthInitializerProps) {
           // Пытаемся получить данные текущего пользователя
           const response = await api.get<{ data: any }>('/api/auth/me');
           
-          if (response.data?.data) {
+          if (response?.data?.data) {
             // Токен валиден, обновляем данные пользователя
             updateUser(response.data.data);
           } else {

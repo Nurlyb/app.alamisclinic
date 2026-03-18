@@ -47,8 +47,8 @@ export function DoctorServiceForm({ service, onSuccess }: DoctorServiceFormProps
     queryKey: ['doctor-service-departments', service?.id],
     queryFn: async () => {
       if (!service?.id) return [];
-      const response = await api.get(`/api/doctor-services/${service.id}/departments`);
-      return response.data?.departments || [];
+      const response = await api.get<{ data: { departments: any[] } }>(`/api/doctor-services/${service.id}/departments`);
+      return response?.data?.departments || [];
     },
     enabled: isEdit && !!service?.id,
   });

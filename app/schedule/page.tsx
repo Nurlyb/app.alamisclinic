@@ -853,7 +853,7 @@ export default function SchedulePage() {
                           <div className="flex items-center justify-between text-xs text-gray-600">
                             <div className="flex items-center gap-1 truncate">
                               <Stethoscope className="w-3 h-3" />
-                              <span className="truncate">{operation.doctor?.name || 'Доктор'}</span>
+                              <span className="truncate">{(operation as any).doctor?.name || 'Доктор'}</span>
                             </div>
                             {operation.assistant && (
                               <div className="flex items-center gap-1 text-green-600">
